@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">ArtFlow</string>
+    <string name="title_studio">Neural Art Studio</string>
+    <string name="action_open_image">Choose Photo</string>
+    <string name="action_take_photo">Take Photo</string>
+    <string name="action_export">Export Studio HD</string>
+    <string name="action_reset">Reset</string>
+    <string name="label_intensity">Style Intensity</string>
+    <string name="label_subject_blend">Subject Preserve</string>
+    <string name="category_fine_art">Fine Art</string>
+    <string name="category_anime">Anime</string>
+    <string name="category_graphic">Graphic</string>
+    <string name="status_processing">Rendering neural style…</string>
+    <string name="status_exporting">Upscaling with FSRCNN 2x &amp; injecting detail…</string>
+    <string name="status_saved">Saved to Pictures/ArtFlow</string>
+    <string name="error_failed_to_load">Failed to process image.</string>
+</resources>
