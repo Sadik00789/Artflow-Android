@@ -7,9 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.artflow.app.core.common.DispatcherProvider
 import com.artflow.app.core.common.Result
+import com.artflow.app.core.storage.MediaStoreWriter
 import com.artflow.app.engine.StyleTransferEngine
-import com.artflow.app.engine.export.ExportStage
-import com.artflow.app.engine.export.HighResExportPipeline
 import com.artflow.app.engine.processing.Compositor
 import com.artflow.app.engine.processing.ImageNormalizer
 import com.artflow.app.engine.segmentation.MaskProcessor
@@ -33,7 +32,7 @@ import kotlinx.coroutines.withContext
 class EditorViewModel(
     private val styleTransferEngine: StyleTransferEngine,
     private val portraitSegmenter: PortraitSegmenter,
-    private val exportPipeline: HighResExportPipeline,
+    private val mediaStoreWriter: MediaStoreWriter,
     private val dispatchers: DispatcherProvider
 ) : ViewModel() {
 
@@ -49,7 +48,6 @@ class EditorViewModel(
 
     // Active in-flight coroutine jobs for cancellation
     private var activeInferenceJob: Job? = null
-    private var activeExportJob: Job? = null
     private var recompositeJob: Job? = null
 
     // Session cache
@@ -194,43 +192,24 @@ class EditorViewModel(
     }
 
     /**
-     * Executes the studio-grade 3-stage high-resolution 1536px export pipeline.
+     * Exports the exact on-screen composite preview to MediaStore at 100% maximum quality.
      */
     fun exportArtwork() {
-        val original = originalPhoto ?: return
         val currentSuccess = _uiState.value as? EditorUiState.Success ?: return
-        val canvasStylized = currentSuccess.compositePreview
+        val exactPreviewBitmap = currentSuccess.compositePreview
 
-        activeExportJob?.cancel()
-        _uiState.value = EditorUiState.Exporting(
-            stage = ExportStage.SuperResolution,
-            progressFraction = 0.1f,
-            previewBitmap = canvasStylized
-        )
-
-        activeExportJob = viewModelScope.launch(dispatchers.default) {
-            val result = exportPipeline.executeExport(
-                originalHighResPhoto = original,
-                canvasStylizedImage = canvasStylized,
-                style = currentStyle,
-                subjectBlend = _settings.value.subjectBlend,
-                segmentationMask = segmentationMask,
-                maskWidth = normalizedCanvas?.width ?: 0,
-                maskHeight = normalizedCanvas?.height ?: 0,
-                onProgress = { stage ->
-                    _uiState.value = EditorUiState.Exporting(
-                        stage = stage,
-                        progressFraction = stage.progressFraction,
-                        previewBitmap = canvasStylized
-                    )
-                }
+        viewModelScope.launch(dispatchers.io) {
+            val result = mediaStoreWriter.saveArtwork(
+                bitmap = exactPreviewBitmap,
+                title = "ArtFlow_${currentSuccess.selectedStyle.name}",
+                styleName = currentSuccess.selectedStyle.name
             )
 
             withContext(dispatchers.main) {
                 if (result is Result.Success) {
                     _uiState.value = currentSuccess.copy(exportedUri = result.data)
                 } else if (result is Result.Error) {
-                    _uiState.value = EditorUiState.Error("Export failed: ${result.message}")
+                    _uiState.value = EditorUiState.Error("Failed to save artwork: ${result.message}")
                 }
             }
         }
@@ -245,7 +224,6 @@ class EditorViewModel(
 
     fun reset() {
         activeInferenceJob?.cancel()
-        activeExportJob?.cancel()
         recompositeJob?.cancel()
         originalPhoto = null
         normalizedCanvas = null

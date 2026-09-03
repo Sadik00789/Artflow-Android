@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
                 return EditorViewModel(
                     styleTransferEngine = app.styleTransferEngine,
                     portraitSegmenter = app.portraitSegmenter,
-                    exportPipeline = app.highResExportPipeline,
+                    mediaStoreWriter = app.mediaStoreWriter,
                     dispatchers = app.dispatchers
                 ) as T
             }

@@ -45,7 +45,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.artflow.app.model.StyleCatalog
 import com.artflow.app.ui.editor.components.BlendSliderBar
-import com.artflow.app.ui.editor.components.ExportProgressDialog
 import com.artflow.app.ui.editor.components.StyleCarousel
 import com.artflow.app.ui.editor.components.ViewportCanvas
 import com.artflow.app.ui.theme.PrimaryNeon
@@ -73,7 +72,7 @@ fun EditorScreen(
         if (uiState is EditorUiState.Success) {
             val success = uiState as EditorUiState.Success
             if (success.exportedUri != null) {
-                Toast.makeText(context, "Exported 1536px HD to Gallery!", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Saved exact artwork to Pictures/ArtFlow!", Toast.LENGTH_SHORT).show()
                 viewModel.dismissExport()
             }
         }
@@ -120,10 +119,6 @@ fun EditorScreen(
                             bitmap = state.compositePreview,
                             selectedStyleId = state.selectedStyle.id
                         )
-                    }
-                    is EditorUiState.Exporting -> {
-                        // While exporting, display current preview behind HUD
-                        ViewportCanvas(bitmap = state.previewBitmap)
                     }
                     is EditorUiState.Error -> {
                         ErrorDisplay(message = state.message, onRetry = onPickImage)
@@ -173,15 +168,6 @@ fun EditorScreen(
                     )
                 }
             }
-        }
-
-        // Export HUD Modal Dialog
-        if (uiState is EditorUiState.Exporting) {
-            val exportingState = uiState as EditorUiState.Exporting
-            ExportProgressDialog(
-                stage = exportingState.stage,
-                progressFraction = exportingState.progressFraction
-            )
         }
     }
 }
@@ -246,7 +232,7 @@ private fun EditorTopBar(
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = " Export 2x",
+                        text = " Save",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold
                     )

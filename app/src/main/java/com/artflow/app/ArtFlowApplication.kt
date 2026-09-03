@@ -9,8 +9,6 @@ import com.artflow.app.engine.DynamicTensorHandler
 import com.artflow.app.engine.GpuDelegateProvider
 import com.artflow.app.engine.ModelLruCache
 import com.artflow.app.engine.StyleTransferEngine
-import com.artflow.app.engine.export.FsrcnnUpscaler
-import com.artflow.app.engine.export.HighResExportPipeline
 import com.artflow.app.engine.segmentation.PortraitSegmenter
 
 /**
@@ -39,13 +37,7 @@ class ArtFlowApplication : Application() {
     lateinit var portraitSegmenter: PortraitSegmenter
         private set
 
-    lateinit var fsrcnnUpscaler: FsrcnnUpscaler
-        private set
-
     lateinit var mediaStoreWriter: MediaStoreWriter
-        private set
-
-    lateinit var highResExportPipeline: HighResExportPipeline
         private set
 
     override fun onCreate() {
@@ -74,19 +66,7 @@ class ArtFlowApplication : Application() {
             dispatchers = dispatchers
         )
 
-        fsrcnnUpscaler = FsrcnnUpscaler(
-            modelReader = assetModelReader,
-            tensorHandler = tensorHandler,
-            dispatchers = dispatchers
-        )
-
         mediaStoreWriter = MediaStoreWriter(this)
-
-        highResExportPipeline = HighResExportPipeline(
-            fsrcnnUpscaler = fsrcnnUpscaler,
-            mediaStoreWriter = mediaStoreWriter,
-            dispatchers = dispatchers
-        )
     }
 
     override fun onTrimMemory(level: Int) {

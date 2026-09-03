@@ -2,7 +2,6 @@ package com.artflow.app.ui.editor
 
 import android.graphics.Bitmap
 import android.net.Uri
-import com.artflow.app.engine.export.ExportStage
 import com.artflow.app.model.EditorSettings
 import com.artflow.app.model.StylePreset
 
@@ -65,15 +64,6 @@ sealed interface EditorUiState {
             return result
         }
     }
-
-    /**
-     * Multi-stage 1536px high-resolution export pipeline is executing.
-     */
-    data class Exporting(
-        val stage: ExportStage,
-        val progressFraction: Float,
-        val previewBitmap: Bitmap
-    ) : EditorUiState
 
     /**
      * Failure state displaying a user-friendly error message.

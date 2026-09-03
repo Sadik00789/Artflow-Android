@@ -49,7 +49,7 @@ class MediaStoreWriter(private val context: Context) {
                 ?: return@withContext Result.Error(IllegalStateException("Failed to create MediaStore entry"))
 
             resolver.openOutputStream(imageUri)?.use { outputStream ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 95, outputStream)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
             } ?: return@withContext Result.Error(IllegalStateException("Failed to open output stream for $imageUri"))
 
             // Inject EXIF Metadata

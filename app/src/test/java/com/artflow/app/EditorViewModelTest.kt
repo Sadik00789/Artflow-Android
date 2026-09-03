@@ -4,8 +4,8 @@ import android.graphics.Bitmap
 import app.cash.turbine.test
 import com.artflow.app.core.common.DispatcherProvider
 import com.artflow.app.core.common.Result
+import com.artflow.app.core.storage.MediaStoreWriter
 import com.artflow.app.engine.StyleTransferEngine
-import com.artflow.app.engine.export.HighResExportPipeline
 import com.artflow.app.engine.segmentation.PortraitSegmenter
 import com.artflow.app.model.StyleCatalog
 import com.artflow.app.ui.editor.EditorUiState
@@ -44,7 +44,7 @@ class EditorViewModelTest {
 
     private val styleTransferEngine: StyleTransferEngine = mockk(relaxed = true)
     private val portraitSegmenter: PortraitSegmenter = mockk(relaxed = true)
-    private val exportPipeline: HighResExportPipeline = mockk(relaxed = true)
+    private val mediaStoreWriter: MediaStoreWriter = mockk(relaxed = true)
 
     private lateinit var viewModel: EditorViewModel
 
@@ -56,7 +56,7 @@ class EditorViewModelTest {
         viewModel = EditorViewModel(
             styleTransferEngine = styleTransferEngine,
             portraitSegmenter = portraitSegmenter,
-            exportPipeline = exportPipeline,
+            mediaStoreWriter = mediaStoreWriter,
             dispatchers = testDispatcherProvider
         )
     }
