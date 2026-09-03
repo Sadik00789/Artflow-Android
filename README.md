@@ -4,10 +4,14 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.20-7F52FF.svg?style=flat&logo=kotlin)](https://kotlinlang.org)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-BOM%202024.09.02-4285F4.svg?style=flat&logo=jetpackcompose)](https://developer.android.com/jetpack/compose)
 [![TensorFlow Lite](https://img.shields.io/badge/TensorFlow%20Lite-2.14.0%20(FP16)-FF6F00.svg?style=flat&logo=tensorflow)](https://www.tensorflow.org/lite)
+[![Release](https://img.shields.io/badge/Release-v1.0.1%20APK-9945FF.svg?style=flat&logo=github)](https://github.com/Sadik00789/Artflow-Android/releases/latest)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Inference](https://img.shields.io/badge/Inference-100%25%20On--Device%20Offline-green.svg?style=flat)](#strict-offline--privacy-first)
 [![Hardware Target](https://img.shields.io/badge/Hardware-Universal%20GPU%20%2F%20NPU%20Acceleration-blue.svg?style=flat)](#universal-hardware-acceleration--multi-vendor-support)
 
 **ArtFlow** is a production-grade, 100% offline, on-device neural art studio for Android. It transforms ordinary photos into fine art paintings, anime drawings, and graphic illustrations using hardware-accelerated deep neural networks running directly on the device's GPU—with **zero cloud dependencies, zero telemetry, and zero network calls**.
+
+👉 **[Download the Latest Standalone APK (v1.0.1)](https://github.com/Sadik00789/Artflow-Android/releases/download/v1.0.1/ArtFlow-v1.0.1.apk)**
 
 ---
 
@@ -21,11 +25,11 @@
 - **Pure 1:1 WYSIWYG Export**: Directly exports the exact on-screen composite preview to `Pictures/ArtFlow` at 100% lossless JPEG quality in $<15\text{ms}$ with full EXIF metadata and zero alteration.
 - **Selfie Segmentation & Subject Protection**: Real-time on-device portrait isolation running with edge-guarded subject preservation and tailored aesthetic color grading.
 - **Universal Multi-Vendor Hardware Acceleration (`DeviceHardwareProfile`)**:
-  - **Qualcomm Snapdragon (Adreno 6xx / 7xx)**: OpenCL FP16 with persistent disk shader caching (`codeCacheDir`), eliminating driver lockups and recompilation latency.
-  - **Google Tensor (Pixel 6, 7, 8, 9 - Mali GPUs)**: Automatic OpenGL ES 3.1 compute shader acceleration, bypassing Pixel vendor SELinux driver restrictions.
-  - **MediaTek Dimensity & Helio (Mali / Immortalis)**: Resilient OpenCL with automatic OpenGL compute fallback.
-  - **Samsung Exynos (ARM Mali & AMD RDNA Xclipse)**: Multi-backend resilience across mobile GPU architectures.
-  - **Universal CPU Fallback (Unisoc & Generic)**: Dynamically tuned XNNPACK multi-threading sized to performance cores, keeping UI threads fluid.
+  - **Qualcomm Snapdragon (8 Elite, 8 Gen 1–3, 7/6 series)**: Native OpenCL FP16 with persistent Adreno disk shader binary caching (`codeCacheDir`), eliminating driver lockups and recompilation latency.
+  - **Google Pixel Tensor Processors (G1–G5 / Pixel 6–9 Pro Fold)**: Native OpenCL acceleration enabled via `<uses-native-library>` manifest linker permissions and disk shader binary serialization (`clGetProgramInfo`), with automatic fallback to OpenGL ES 3.1 Compute, Android NNAPI (EdgeTPU), and multi-threaded CPU.
+  - **MediaTek Dimensity & Helio (Dimensity 700–9400)**: Resilient OpenCL FP16 with ARM Mali / Immortalis disk shader caching and OpenGL compute fallback.
+  - **Samsung Exynos (ARM Mali & AMD RDNA Xclipse 530/920/940)**: Multi-backend resilience across mobile GPU architectures with disk shader caching.
+  - **Universal CPU Fallback (Unisoc & Generic)**: Dynamically tuned XNNPACK multi-threading sized to performance cores (4 threads for tri-cluster architectures), keeping UI threads fluid.
 - **Zero-Allocation Pipeline**: Pre-allocated pinned native direct buffers and 8-bit fixed-point integer math (`shr 8`), completely eliminating Large Object Space (LOS) garbage collection pauses.
 - **Modern Jetpack Compose UI**: Edge-to-edge Material 3 dark theme, 120Hz smooth scrolling carousel, interactive pinch-to-zoom/pan canvas with crossfade transitions, and balanced dual intensity/subject isolation sliders.
 
@@ -42,15 +46,15 @@ flowchart TD
     subgraph HardwareStage ["2. Adaptive Hardware Orchestration (DeviceHardwareProfile)"]
         B --> C["ModelLruCache: 2-Slot GPU LRU"]
         C --> D{"Vendor / Hardware Detection"}
-        D -->|"Qualcomm / MediaTek"| E["Tier 1: OpenCL FP16 + Disk Shader Cache"]
-        D -->|"Google Tensor / Pixel"| F["Tier 2: OpenGL ES 3.1 Compute Shaders"]
-        D -->|"Hardware NPU"| G["Tier 3: Android NNAPI Acceleration"]
-        D -->|"CPU Fallback"| H["Tier 4: Tuned XNNPACK Multi-Threading"]
+        D -->|"Qualcomm / MediaTek / Google Tensor / Exynos"| E["Tier 1: OpenCL FP16 + Disk Shader Cache"]
+        D -->|"Restricted Drivers"| F["Tier 2: OpenGL ES 3.1 Compute Shaders"]
+        D -->|"Hardware NPU / EdgeTPU"| G["Tier 3: Android NNAPI Acceleration"]
+        D -->|"CPU Fallback"| H["Tier 4: Tuned 4-Thread XNNPACK"]
     end
 
     subgraph StudioEngine ["3. Zero-Allocation Studio Engine"]
         E & F & G & H --> I["StyleTransferEngine: Static 1024x1024 Tensor Canvas"]
-        B --> J["PortraitSegmenter: MediaPipe Selfie Segmenter"]
+        B --> J["PortraitSegmenter: MediaPipe Selfie Segmenter (CPU Thread)"]
         J --> K["MaskProcessor: 2D Spatial Bicubic Rescale"]
         I --> L["StylePostProcessor: Tailored Aesthetic Color Grading"]
         L --> M["Compositor: Fast Fixed-Point Integer Alpha Blending"]
@@ -124,11 +128,11 @@ ArtFlow contains a dedicated hardware abstraction layer ([DeviceHardwareProfile.
 
 | Vendor / SoC Family | GPU Architecture | Acceleration Strategy |
 | :--- | :--- | :--- |
-| **Qualcomm Snapdragon** (6xx, 7xx, 8 Gen 1/2/3/4) | Adreno 6xx / 7xx | **Tier 1 (OpenCL FP16)** with persistent disk shader caching in `codeCacheDir`. |
-| **Google Tensor** (Pixel 6, 7, 8, 9) | ARM Mali-G78 / G715 | **Tier 2 (OpenGL ES 3.1 Compute)**; automatically avoids vendor SELinux driver permission blocks. |
-| **MediaTek Dimensity / Helio** (700–9300, Helio G99) | ARM Mali / Immortalis | **Tier 1 (OpenCL) $\to$ Tier 2 (OpenGL ES 3.1)**; resilient fallback. |
-| **Samsung Exynos** (2100, 2200, 2400) | Mali / AMD Xclipse | **Tier 1 (OpenCL) $\to$ Tier 2 (OpenGL ES 3.1)**; optimized for RDNA and Mali. |
-| **Entry-Level / Generic** (Unisoc, etc.) | Generic / CPU | **Tier 3 (NNAPI) $\to$ Tier 4 (XNNPACK CPU)**; dynamically tuned thread pool protecting UI threads. |
+| **Qualcomm Snapdragon** (8 Elite, 8 Gen 1/2/3, 7/6 series) | Adreno 6xx / 7xx / 8xx | **Tier 1 (OpenCL FP16)** with persistent disk shader caching in `codeCacheDir`. |
+| **Google Tensor** (Pixel 6, 7, 8, 9 Pro Fold - G1 to G5) | ARM Mali-G78 / G710 / G715 Immortalis | **Tier 1 (OpenCL FP16 + Disk Shader Cache)** via manifest `<uses-native-library>` $\to$ **Tier 2 (OpenGL ES 3.1 Compute)** $\to$ **Tier 3 (Android NNAPI / EdgeTPU)**. |
+| **MediaTek Dimensity / Helio** (700–9400, Helio G99) | ARM Mali / Immortalis | **Tier 1 (OpenCL FP16 + Disk Cache)** $\to$ **Tier 2 (OpenGL ES 3.1)**; resilient fallback. |
+| **Samsung Exynos** (1480, 2100, 2200, 2400) | ARM Mali & AMD RDNA Xclipse | **Tier 1 (OpenCL FP16 + Disk Cache)** $\to$ **Tier 2 (OpenGL ES 3.1)**; optimized for RDNA and Mali. |
+| **Entry-Level / Generic** (Unisoc, etc.) | Generic / CPU | **Tier 3 (NNAPI)** $\to$ **Tier 4 (XNNPACK CPU)**; dynamically tuned thread pool protecting UI threads. |
 
 ---
 
@@ -251,4 +255,4 @@ python3 tools/verify_tflite.py
 
 ## License
 
-This project is licensed under the Apache License, Version 2.0. Model checkpoints are subject to their respective open-source licenses (MIT / Apache 2.0).
+This project is licensed under the Apache License, Version 2.0 - see the [LICENSE](LICENSE) file for details. Model checkpoints are subject to their respective open-source licenses (MIT / Apache 2.0).
