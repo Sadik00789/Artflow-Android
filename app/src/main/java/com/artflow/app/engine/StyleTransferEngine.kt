@@ -41,6 +41,8 @@ class StyleTransferEngine(
             val cachedModel = getOrLoadModel(style.modelAssetPath)
             val interpreter = cachedModel.interpreter
 
+            val t0 = System.currentTimeMillis()
+
             // 2. Pad to static 1024x1024 square
             val (paddedInput, padding) = ImageNormalizer.padToSquare1024(bitmap)
 
@@ -49,11 +51,12 @@ class StyleTransferEngine(
             val outputBuffer = tensorHandler.staticOutputBuffer
             tensorHandler.bitmapToFloatBuffer(paddedInput, inputBuffer)
 
+            val t1 = System.currentTimeMillis()
+
             // 4. Execute inference on static 1024x1024 canvas
-            val startTime = System.currentTimeMillis()
             interpreter.run(inputBuffer, outputBuffer)
-            val duration = System.currentTimeMillis() - startTime
-            Log.d(TAG, "Inference completed for style '${style.name}' (1024x1024) in ${duration}ms")
+
+            val t2 = System.currentTimeMillis()
 
             // 5. Convert output float buffer to Bitmap
             val paddedOutput = tensorHandler.floatBufferToBitmap(
@@ -67,6 +70,13 @@ class StyleTransferEngine(
 
             // 7. Apply tailored aesthetic color and tone grading per style preset
             val finalizedArt = StylePostProcessor.applyAestheticGrading(croppedOutput, style.id)
+
+            val t3 = System.currentTimeMillis()
+            Log.i(
+                TAG,
+                "[Profiling] '${style.name}': Preprocess=${t1 - t0}ms, GPU Run=${t2 - t1}ms, " +
+                    "Postprocess=${t3 - t2}ms, Total=${t3 - t0}ms"
+            )
 
             Result.Success(finalizedArt)
         } catch (e: Throwable) {
