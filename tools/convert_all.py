@@ -109,7 +109,7 @@ class FallbackUnifiedStyleTFModule(tf.Module):
         self.w3 = tf.Variable(w3_init, trainable=False, name="w3")
         self.b3 = tf.Variable(b3_init, trainable=False, name="b3")
 
-    @tf.function(input_signature=[tf.TensorSpec(shape=[1, 512, 512, 3], dtype=tf.float32, name="input")])
+    @tf.function(input_signature=[tf.TensorSpec(shape=[1, 768, 768, 3], dtype=tf.float32, name="input")])
     def __call__(self, x):
         h = tf.nn.relu(tf.nn.conv2d(x, self.w1, strides=1, padding="SAME") + self.b1)
         h = tf.nn.relu(tf.nn.conv2d(h, self.w2, strides=1, padding="SAME") + self.b2)

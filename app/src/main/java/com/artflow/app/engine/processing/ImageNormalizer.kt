@@ -21,7 +21,7 @@ data class CanvasPadding(
  */
 object ImageNormalizer {
 
-    const val DEFAULT_MAX_DIMENSION = 512
+    const val DEFAULT_MAX_DIMENSION = 768
 
     /**
      * Scales [source] so its longest dimension is [maxDim] (snapped to the nearest even integer),
@@ -65,10 +65,10 @@ object ImageNormalizer {
     }
 
     /**
-     * Scales [source] so its longest edge is 512px, then pads symmetrically to a 512x512 square.
-     * Uses black letterboxing.
+     * Scales [source] so its longest edge is 768px, then pads symmetrically to a 768x768 square.
+     * Fills padding with the border color to preserve normalization statistics.
      */
-    fun padToSquare512(source: Bitmap): Pair<Bitmap, CanvasPadding> {
+    fun padToSquare768(source: Bitmap): Pair<Bitmap, CanvasPadding> {
         val scaled = normalizeCanvas(source, DEFAULT_MAX_DIMENSION)
         val sWidth = scaled.width
         val sHeight = scaled.height
@@ -101,9 +101,9 @@ object ImageNormalizer {
     }
 
     /**
-     * Restores original aspect ratio from the 512x512 square padded bitmap using [CanvasPadding].
+     * Restores original aspect ratio from the 768x768 square padded bitmap using [CanvasPadding].
      */
-    fun cropFromSquare512(padded: Bitmap, padding: CanvasPadding): Bitmap {
+    fun cropFromSquare768(padded: Bitmap, padding: CanvasPadding): Bitmap {
         if (padding.padLeft == 0 && padding.padTop == 0 &&
             padding.originalWidth == padded.width && padding.originalHeight == padded.height
         ) {
@@ -117,6 +117,10 @@ object ImageNormalizer {
             padding.originalHeight
         )
     }
+
+    // Backward compatibility aliases
+    fun padToSquare512(source: Bitmap): Pair<Bitmap, CanvasPadding> = padToSquare768(source)
+    fun cropFromSquare512(padded: Bitmap, padding: CanvasPadding): Bitmap = cropFromSquare768(padded, padding)
 
     private fun snapToEven(value: Int): Int {
         return if (value % 2 != 0) value - 1 else value
