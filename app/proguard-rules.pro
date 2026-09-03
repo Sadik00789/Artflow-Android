@@ -8,6 +8,13 @@
     native <methods>;
 }
 
+# MediaPipe & Tasks Vision
+-keep class com.google.mediapipe.** { *; }
+-dontwarn com.google.mediapipe.**
+-dontwarn com.google.auto.value.**
+-dontwarn autovalue.shaded.**
+-dontwarn javax.lang.model.**
+
 # Preserve native JNI methods
 -keepclasseswithmembernames class * {
     native <methods>;
