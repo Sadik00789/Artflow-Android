@@ -75,8 +75,8 @@ class EditorViewModelTest {
     @Test
     fun testRapidStyleSwitchingCancelsInFlightInference() = runTest(testDispatcher) {
         val mockBitmap = mockk<Bitmap>(relaxed = true)
-        coEvery { mockBitmap.width } returns 768
-        coEvery { mockBitmap.height } returns 576
+        coEvery { mockBitmap.width } returns 1024
+        coEvery { mockBitmap.height } returns 768
         coEvery { Bitmap.createScaledBitmap(any(), any(), any(), any()) } returns mockBitmap
         coEvery { Bitmap.createBitmap(any<Int>(), any<Int>(), any()) } returns mockBitmap
 

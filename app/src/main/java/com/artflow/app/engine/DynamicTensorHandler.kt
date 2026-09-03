@@ -12,7 +12,7 @@ import java.nio.ByteOrder
 class DynamicTensorHandler {
 
     companion object {
-        const val STATIC_DIMENSION = 768
+        const val STATIC_DIMENSION = 1024
         const val CHANNELS = 3
         const val BYTES_PER_FLOAT = 4
         const val STATIC_BUFFER_CAPACITY = 1 * STATIC_DIMENSION * STATIC_DIMENSION * CHANNELS * BYTES_PER_FLOAT

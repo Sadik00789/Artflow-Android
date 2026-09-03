@@ -41,19 +41,19 @@ class StyleTransferEngine(
             val cachedModel = getOrLoadModel(style.modelAssetPath)
             val interpreter = cachedModel.interpreter
 
-            // 2. Pad to static 768x768 square
-            val (paddedInput, padding) = ImageNormalizer.padToSquare768(bitmap)
+            // 2. Pad to static 1024x1024 square
+            val (paddedInput, padding) = ImageNormalizer.padToSquare1024(bitmap)
 
-            // 3. Populate pre-allocated static 768x768 input buffer
+            // 3. Populate pre-allocated static 1024x1024 input buffer
             val inputBuffer = tensorHandler.staticInputBuffer
             val outputBuffer = tensorHandler.staticOutputBuffer
             tensorHandler.bitmapToFloatBuffer(paddedInput, inputBuffer)
 
-            // 4. Execute inference on static 768x768 canvas
+            // 4. Execute inference on static 1024x1024 canvas
             val startTime = System.currentTimeMillis()
             interpreter.run(inputBuffer, outputBuffer)
             val duration = System.currentTimeMillis() - startTime
-            Log.d(TAG, "Inference completed for style '${style.name}' (768x768) in ${duration}ms")
+            Log.d(TAG, "Inference completed for style '${style.name}' (1024x1024) in ${duration}ms")
 
             // 5. Convert output float buffer to Bitmap
             val paddedOutput = tensorHandler.floatBufferToBitmap(
@@ -63,7 +63,7 @@ class StyleTransferEngine(
             )
 
             // 6. Crop back to original normalized dimensions
-            val croppedOutput = ImageNormalizer.cropFromSquare768(paddedOutput, padding)
+            val croppedOutput = ImageNormalizer.cropFromSquare1024(paddedOutput, padding)
 
             // 7. Apply tailored aesthetic color and tone grading per style preset
             val finalizedArt = StylePostProcessor.applyAestheticGrading(croppedOutput, style.id)

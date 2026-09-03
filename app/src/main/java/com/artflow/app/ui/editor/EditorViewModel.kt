@@ -59,8 +59,8 @@ class EditorViewModel(
 
     /**
      * Ingests a new photo from the camera or gallery:
-     * 1. Stores the full-res original for the 1536px export pipeline.
-     * 2. Scales and snaps to 768px even dimensions for the interactive WYSIWYG canvas.
+     * 1. Stores the full-res original.
+     * 2. Scales and snaps to 1024px even dimensions for the interactive WYSIWYG canvas.
      * 3. Runs background portrait segmentation.
      * 4. Renders the default artistic style.
      */

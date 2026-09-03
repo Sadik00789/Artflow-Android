@@ -6,35 +6,35 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Unit tests verifying canvas dimension normalization to 768px baseline and even integer snapping.
+ * Unit tests verifying canvas dimension normalization to 1024px baseline and even integer snapping.
  */
 class ImageNormalizerTest {
 
     @Test
     fun testLandscapeNormalization() {
-        // Standard 4:3 12MP camera photo with 768px baseline
-        val (width, height) = ImageNormalizer.calculateDimensions(4032, 3024, maxDim = 768)
-        assertEquals(768, width)
-        assertEquals(576, height)
+        // Standard 4:3 12MP camera photo with 1024px baseline
+        val (width, height) = ImageNormalizer.calculateDimensions(4032, 3024, maxDim = 1024)
+        assertEquals(1024, width)
+        assertEquals(768, height)
         assertTrue("Width must be even", width % 2 == 0)
         assertTrue("Height must be even", height % 2 == 0)
     }
 
     @Test
     fun testPortraitNormalization() {
-        // Standard 3:4 portrait photo with 768px baseline
-        val (width, height) = ImageNormalizer.calculateDimensions(3024, 4032, maxDim = 768)
-        assertEquals(576, width)
-        assertEquals(768, height)
+        // Standard 3:4 portrait photo with 1024px baseline
+        val (width, height) = ImageNormalizer.calculateDimensions(3024, 4032, maxDim = 1024)
+        assertEquals(768, width)
+        assertEquals(1024, height)
         assertTrue("Width must be even", width % 2 == 0)
         assertTrue("Height must be even", height % 2 == 0)
     }
 
     @Test
     fun testSquareNormalization() {
-        val (width, height) = ImageNormalizer.calculateDimensions(1080, 1080, maxDim = 768)
-        assertEquals(768, width)
-        assertEquals(768, height)
+        val (width, height) = ImageNormalizer.calculateDimensions(1080, 1080, maxDim = 1024)
+        assertEquals(1024, width)
+        assertEquals(1024, height)
         assertTrue("Width must be even", width % 2 == 0)
         assertTrue("Height must be even", height % 2 == 0)
     }
@@ -42,8 +42,8 @@ class ImageNormalizerTest {
     @Test
     fun testOddDimensionSnapping() {
         // Arbitrary dimensions resulting in odd numbers
-        val (width, height) = ImageNormalizer.calculateDimensions(1920, 1081, maxDim = 768)
-        assertEquals(768, width)
+        val (width, height) = ImageNormalizer.calculateDimensions(1920, 1081, maxDim = 1024)
+        assertEquals(1024, width)
         assertTrue("Calculated height must be snapped to even integer", height % 2 == 0)
     }
 
@@ -58,20 +58,20 @@ class ImageNormalizerTest {
 
     @Test
     fun testSymmetricPaddingOffsets() {
-        // Landscape 768x576 (4:3)
-        val sWidth = 768
-        val sHeight = 576
-        val padLeft = (768 - sWidth) / 2
-        val padTop = (768 - sHeight) / 2
+        // Landscape 1024x768 (4:3)
+        val sWidth = 1024
+        val sHeight = 768
+        val padLeft = (1024 - sWidth) / 2
+        val padTop = (1024 - sHeight) / 2
         assertEquals(0, padLeft)
-        assertEquals(96, padTop)
+        assertEquals(128, padTop)
 
-        // Portrait 576x768 (3:4)
-        val pWidth = 576
-        val pHeight = 768
-        val pPadLeft = (768 - pWidth) / 2
-        val pPadTop = (768 - pHeight) / 2
-        assertEquals(96, pPadLeft)
+        // Portrait 768x1024 (3:4)
+        val pWidth = 768
+        val pHeight = 1024
+        val pPadLeft = (1024 - pWidth) / 2
+        val pPadTop = (1024 - pHeight) / 2
+        assertEquals(128, pPadLeft)
         assertEquals(0, pPadTop)
     }
 }
