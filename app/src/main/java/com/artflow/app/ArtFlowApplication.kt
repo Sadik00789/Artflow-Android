@@ -54,7 +54,7 @@ class ArtFlowApplication : Application() {
 
         dispatchers = StandardDispatcherProvider()
         assetModelReader = AssetModelReader(this)
-        gpuDelegateProvider = GpuDelegateProvider()
+        gpuDelegateProvider = GpuDelegateProvider(this)
         modelLruCache = ModelLruCache(capacity = 2, dispatchers = dispatchers)
         tensorHandler = DynamicTensorHandler()
 

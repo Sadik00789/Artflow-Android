@@ -1,5 +1,6 @@
 package com.artflow.app.engine
 
+import android.content.Context
 import android.util.Log
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.gpu.CompatibilityList
@@ -7,11 +8,11 @@ import org.tensorflow.lite.gpu.GpuDelegate
 
 /**
  * Manages TensorFlow Lite execution delegates:
- * Configures OpenCL GPU delegate with FP16 precision loss allowed and sustained speed preference
- * on supported hardware (such as Snapdragon 695 / Adreno 619).
+ * Configures OpenCL GPU delegate with FP16 precision loss allowed, fast single answer preference,
+ * and persistent disk shader cache serialization on supported hardware (such as Snapdragon 695 / Adreno 619).
  * Automatically falls back to a 4-thread CPU XNNPACK configuration.
  */
-class GpuDelegateProvider {
+class GpuDelegateProvider(private val context: Context) {
 
     companion object {
         private const val TAG = "GpuDelegateProvider"
@@ -32,11 +33,12 @@ class GpuDelegateProvider {
             try {
                 val delegateOptions = compatList.bestOptionsForThisDevice.apply {
                     setPrecisionLossAllowed(true)
-                    setInferencePreference(GpuDelegate.Options.INFERENCE_PREFERENCE_SUSTAINED_SPEED)
+                    setInferencePreference(GpuDelegate.Options.INFERENCE_PREFERENCE_FAST_SINGLE_ANSWER)
+                    setSerializationParams(context.cacheDir.absolutePath, "artflow_opencl_cache")
                 }
                 gpuDelegate = GpuDelegate(delegateOptions)
                 options.addDelegate(gpuDelegate)
-                Log.i(TAG, "OpenCL GPU Delegate initialized successfully (FP16 enabled, Sustained Speed).")
+                Log.i(TAG, "OpenCL GPU Delegate initialized successfully (FP16, FAST_SINGLE_ANSWER, cacheDir=${context.cacheDir.absolutePath}).")
             } catch (e: Throwable) {
                 Log.w(TAG, "GPU Delegate initialization failed, falling back to CPU XNNPACK: ${e.message}")
                 gpuDelegate = null

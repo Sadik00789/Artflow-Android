@@ -12,18 +12,18 @@ import java.nio.ByteOrder
 class DynamicTensorHandler {
 
     companion object {
-        const val STATIC_DIMENSION = 768
+        const val STATIC_DIMENSION = 512
         const val CHANNELS = 3
         const val BYTES_PER_FLOAT = 4
         const val STATIC_BUFFER_CAPACITY = 1 * STATIC_DIMENSION * STATIC_DIMENSION * CHANNELS * BYTES_PER_FLOAT
     }
 
-    /** Pre-allocated direct buffer for static 768x768x3 float input tensor */
+    /** Pre-allocated direct buffer for static 512x512x3 float input tensor */
     val staticInputBuffer: ByteBuffer = ByteBuffer.allocateDirect(STATIC_BUFFER_CAPACITY).apply {
         order(ByteOrder.nativeOrder())
     }
 
-    /** Pre-allocated direct buffer for static 768x768x3 float output tensor */
+    /** Pre-allocated direct buffer for static 512x512x3 float output tensor */
     val staticOutputBuffer: ByteBuffer = ByteBuffer.allocateDirect(STATIC_BUFFER_CAPACITY).apply {
         order(ByteOrder.nativeOrder())
     }
@@ -40,47 +40,47 @@ class DynamicTensorHandler {
 
     /**
      * Converts a [Bitmap] into an RGB Float32 [ByteBuffer] with pixel values in range [0.0, 255.0].
+     * Uses a single bulk native buffer transfer to eliminate scalar JNI overhead.
      */
     fun bitmapToFloatBuffer(bitmap: Bitmap, targetBuffer: ByteBuffer) {
         targetBuffer.rewind()
         val width = bitmap.width
         val height = bitmap.height
-        val pixels = IntArray(width * height)
+        val totalPixels = width * height
+        val pixels = IntArray(totalPixels)
         bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
 
-        var idx = 0
-        for (y in 0 until height) {
-            for (x in 0 until width) {
-                val pixel = pixels[idx++]
-                val r = ((pixel shr 16) and 0xFF).toFloat()
-                val g = ((pixel shr 8) and 0xFF).toFloat()
-                val b = (pixel and 0xFF).toFloat()
-
-                targetBuffer.putFloat(r)
-                targetBuffer.putFloat(g)
-                targetBuffer.putFloat(b)
-            }
+        val floatArray = FloatArray(totalPixels * CHANNELS)
+        var floatIdx = 0
+        for (i in 0 until totalPixels) {
+            val pixel = pixels[i]
+            floatArray[floatIdx++] = ((pixel shr 16) and 0xFF).toFloat()
+            floatArray[floatIdx++] = ((pixel shr 8) and 0xFF).toFloat()
+            floatArray[floatIdx++] = (pixel and 0xFF).toFloat()
         }
+        targetBuffer.asFloatBuffer().put(floatArray)
         targetBuffer.rewind()
     }
 
     /**
      * Converts an RGB Float32 [ByteBuffer] with pixel values in range [0.0, 255.0] into a [Bitmap].
+     * Uses a single bulk native buffer transfer to eliminate scalar JNI overhead.
      */
     fun floatBufferToBitmap(buffer: ByteBuffer, width: Int, height: Int): Bitmap {
         buffer.rewind()
-        val outBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val pixels = IntArray(width * height)
+        val totalPixels = width * height
+        val floatArray = FloatArray(totalPixels * CHANNELS)
+        buffer.asFloatBuffer().get(floatArray)
 
-        var idx = 0
-        for (i in 0 until width * height) {
-            val r = buffer.float.coerceIn(0f, 255f).toInt()
-            val g = buffer.float.coerceIn(0f, 255f).toInt()
-            val b = buffer.float.coerceIn(0f, 255f).toInt()
-
-            pixels[idx++] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
+        val pixels = IntArray(totalPixels)
+        var floatIdx = 0
+        for (i in 0 until totalPixels) {
+            val r = floatArray[floatIdx++].coerceIn(0f, 255f).toInt()
+            val g = floatArray[floatIdx++].coerceIn(0f, 255f).toInt()
+            val b = floatArray[floatIdx++].coerceIn(0f, 255f).toInt()
+            pixels[i] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
         }
-
+        val outBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         outBitmap.setPixels(pixels, 0, width, 0, 0, width, height)
         return outBitmap
     }

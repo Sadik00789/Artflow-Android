@@ -6,7 +6,7 @@ import android.graphics.Color
 import kotlin.math.roundToInt
 
 /**
- * Padding parameters describing where an image was placed inside the 768x768 static canvas.
+ * Padding parameters describing where an image was placed inside the 512x512 static canvas.
  */
 data class CanvasPadding(
     val padLeft: Int,
@@ -16,12 +16,12 @@ data class CanvasPadding(
 )
 
 /**
- * Normalizes input image dimensions to the target canvas baseline (768px on longest side, snapped to even integers),
- * and handles symmetric padding and cropping for static 768x768 TFLite OpenCL inference.
+ * Normalizes input image dimensions to the target canvas baseline (512px on longest side, snapped to even integers),
+ * and handles symmetric padding and cropping for static 512x512 TFLite OpenCL inference.
  */
 object ImageNormalizer {
 
-    const val DEFAULT_MAX_DIMENSION = 768
+    const val DEFAULT_MAX_DIMENSION = 512
 
     /**
      * Scales [source] so its longest dimension is [maxDim] (snapped to the nearest even integer),
@@ -65,10 +65,10 @@ object ImageNormalizer {
     }
 
     /**
-     * Scales [source] so its longest edge is 768px, then pads symmetrically to a 768x768 square.
+     * Scales [source] so its longest edge is 512px, then pads symmetrically to a 512x512 square.
      * Uses black letterboxing.
      */
-    fun padToSquare768(source: Bitmap): Pair<Bitmap, CanvasPadding> {
+    fun padToSquare512(source: Bitmap): Pair<Bitmap, CanvasPadding> {
         val scaled = normalizeCanvas(source, DEFAULT_MAX_DIMENSION)
         val sWidth = scaled.width
         val sHeight = scaled.height
@@ -99,9 +99,9 @@ object ImageNormalizer {
     }
 
     /**
-     * Restores original aspect ratio from the 768x768 square padded bitmap using [CanvasPadding].
+     * Restores original aspect ratio from the 512x512 square padded bitmap using [CanvasPadding].
      */
-    fun cropFromSquare768(padded: Bitmap, padding: CanvasPadding): Bitmap {
+    fun cropFromSquare512(padded: Bitmap, padding: CanvasPadding): Bitmap {
         if (padding.padLeft == 0 && padding.padTop == 0 &&
             padding.originalWidth == padded.width && padding.originalHeight == padded.height
         ) {

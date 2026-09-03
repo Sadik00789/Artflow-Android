@@ -40,8 +40,8 @@ def verify_model(model_path: str):
         assert out.shape == expected_shape, f"Segmenter shape mismatch: expected {expected_shape}, got {out.shape}"
         assert 0.0 <= np.min(out) and np.max(out) <= 1.0, f"Out-of-bounds in segmenter: min={np.min(out)}, max={np.max(out)}"
     else:
-        assert h == 768 and w == 768, f"Expected static 768x768 input for {basename}, got {h}x{w}"
-        expected_shape = (1, 768, 768, 3)
+        assert h == 512 and w == 512, f"Expected static 512x512 input for {basename}, got {h}x{w}"
+        expected_shape = (1, 512, 512, 3)
         assert out.shape == expected_shape, f"Style model shape mismatch: expected {expected_shape}, got {out.shape}"
         assert 0.0 <= np.min(out) and np.max(out) <= 255.0, f"Out-of-bounds in {basename}: min={np.min(out)}, max={np.max(out)}"
 
