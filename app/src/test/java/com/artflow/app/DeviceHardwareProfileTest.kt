@@ -69,6 +69,98 @@ class DeviceHardwareProfileTest {
     }
 
     @Test
+    fun testGoogleTensorGenerations() {
+        // Pixel 6 / 6 Pro / 6a (Tensor G1)
+        val tensorG1 = DeviceHardwareProfile.detectSocVendor(
+            hardware = "oriole",
+            board = "oriole",
+            manufacturer = "Google",
+            socManufacturer = "Google",
+            socModel = "GS101"
+        )
+        assertEquals(DeviceHardwareProfile.SocVendor.GOOGLE_TENSOR, tensorG1)
+        assertEquals(DeviceHardwareProfile.GpuFamily.MALI, DeviceHardwareProfile.detectGpuFamily(tensorG1, "oriole", "oriole"))
+
+        // Pixel 7 / 7 Pro / 7a (Tensor G2)
+        val tensorG2 = DeviceHardwareProfile.detectSocVendor(
+            hardware = "panther",
+            board = "cheetah",
+            manufacturer = "Google",
+            socManufacturer = "Google",
+            socModel = "GS201"
+        )
+        assertEquals(DeviceHardwareProfile.SocVendor.GOOGLE_TENSOR, tensorG2)
+
+        // Pixel 8 / 8 Pro / 8a (Tensor G3)
+        val tensorG3 = DeviceHardwareProfile.detectSocVendor(
+            hardware = "zuma",
+            board = "shiba",
+            manufacturer = "Google",
+            socManufacturer = "Google",
+            socModel = "GS301"
+        )
+        assertEquals(DeviceHardwareProfile.SocVendor.GOOGLE_TENSOR, tensorG3)
+
+        // Pixel 9 / 9 Pro / 9 Pro XL (Tensor G4)
+        val tensorG4 = DeviceHardwareProfile.detectSocVendor(
+            hardware = "zumapro",
+            board = "caiman",
+            manufacturer = "Google",
+            socManufacturer = "Google",
+            socModel = "GS401"
+        )
+        assertEquals(DeviceHardwareProfile.SocVendor.GOOGLE_TENSOR, tensorG4)
+
+        // Pixel 10 (Tensor G5 - PowerVR)
+        val tensorG5 = DeviceHardwareProfile.detectSocVendor(
+            hardware = "laguna",
+            board = "frankel",
+            manufacturer = "Google",
+            socManufacturer = "Google",
+            socModel = "GS501"
+        )
+        assertEquals(DeviceHardwareProfile.SocVendor.GOOGLE_TENSOR, tensorG5)
+        assertEquals(DeviceHardwareProfile.GpuFamily.POWERVR, DeviceHardwareProfile.detectGpuFamily(tensorG5, "laguna", "frankel"))
+    }
+
+    @Test
+    fun testSnapdragonEliteAndFlagships() {
+        // Snapdragon 8 Elite (SM8750 / Sun)
+        val snapdragonElite = DeviceHardwareProfile.detectSocVendor(
+            hardware = "qcom",
+            board = "sun",
+            manufacturer = "Samsung",
+            socManufacturer = "QTI",
+            socModel = "SM8750"
+        )
+        assertEquals(DeviceHardwareProfile.SocVendor.QUALCOMM, snapdragonElite)
+
+        // Snapdragon 8 Gen 3 (SM8650 / Pineapple)
+        val snapdragon8Gen3 = DeviceHardwareProfile.detectSocVendor(
+            hardware = "qcom",
+            board = "pineapple",
+            manufacturer = "OnePlus",
+            socManufacturer = "QTI",
+            socModel = "SM8650"
+        )
+        assertEquals(DeviceHardwareProfile.SocVendor.QUALCOMM, snapdragon8Gen3)
+    }
+
+    @Test
+    fun testExynosXclipseAMD() {
+        // Exynos 2400 (Xclipse 940)
+        val exynos2400 = DeviceHardwareProfile.detectSocVendor(
+            hardware = "s5e9945",
+            board = "universal2400",
+            manufacturer = "Samsung",
+            socManufacturer = "Samsung",
+            socModel = "Exynos 2400"
+        )
+        assertEquals(DeviceHardwareProfile.SocVendor.SAMSUNG_EXYNOS, exynos2400)
+        assertEquals(DeviceHardwareProfile.GpuFamily.XCLIPSE, DeviceHardwareProfile.detectGpuFamily(exynos2400, "s5e9945_xclipse", "universal2400"))
+    }
+
+    @Test
     fun testOptimalThreadCalculation() {
         val threads = DeviceHardwareProfile.calculateOptimalCpuThreads()
         assertTrue("Optimal thread count should be at least 2", threads >= 2)

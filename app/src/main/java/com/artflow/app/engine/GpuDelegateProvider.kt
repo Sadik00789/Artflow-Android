@@ -21,10 +21,12 @@ class GpuDelegateProvider(private val context: Context) {
     fun createInterpreterOptions(modelAssetPath: String? = null): InterpreterOptionsHolder {
         val options = Interpreter.Options()
         var gpuDelegate: GpuDelegate? = null
+        val vendorTag = hardwareProfile.vendor.name.lowercase()
+        val gpuTag = hardwareProfile.gpuFamily.name.lowercase()
         val token = if (modelAssetPath != null) {
-            "artflow_ocl_" + modelAssetPath.substringAfterLast("/").substringBefore(".tflite")
+            "artflow_${vendorTag}_${gpuTag}_" + modelAssetPath.substringAfterLast("/").substringBefore(".tflite")
         } else {
-            "artflow_ocl_default"
+            "artflow_${vendorTag}_${gpuTag}_default"
         }
         val cacheDir = DeviceHardwareProfile.getShaderCacheDirectory(context).absolutePath
 

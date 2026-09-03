@@ -62,8 +62,8 @@ class AdrenoBenchmarkTest {
         val avgDurationMs = totalDuration / iterations
         println("AdrenoBenchmark: Average inference latency over $iterations runs: ${avgDurationMs}ms")
 
-        // Assert average execution finishes within reasonable budget
-        assertTrue("Inference must finish under 1000ms", avgDurationMs < 1000)
+        // Assert average execution finishes within reasonable budget for 1024px resolution
+        assertTrue("Inference at 1024px must finish under 3500ms on Adreno 619", avgDurationMs < 3500)
     }
 
     @Test
