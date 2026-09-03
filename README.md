@@ -15,6 +15,15 @@
 
 ---
 
+## Studio Screenshots & Live Stylization
+
+| Fine Art: Boating Party | Anime: Retro 80s | Subject Preserve (63%) | Anime: Ghibli Pastoral | Graphic: Cyanotype |
+| :---: | :---: | :---: | :---: | :---: |
+| <img src="docs/screenshots/fine_art_boating_party.jpg" width="220" alt="Fine Art Boating Party" /> | <img src="docs/screenshots/anime_retro_80s.jpg" width="220" alt="Anime Retro 80s" /> | <img src="docs/screenshots/subject_preserve_chibi_pastel.jpg" width="220" alt="Subject Preserve Demo" /> | <img src="docs/screenshots/anime_ghibli_pastoral.jpg" width="220" alt="Anime Ghibli Pastoral" /> | <img src="docs/screenshots/graphic_cyanotype.jpg" width="220" alt="Graphic Cyanotype" /> |
+| **Fine Art Preset**<br><sub>Pierre-Auguste Renoir</sub> | **Anime Preset**<br><sub>Classic 80s Hand-Cel</sub> | **Subject Protection**<br><sub>63% Persona Isolation</sub> | **Anime Preset**<br><sub>Studio Ghibli Lush Tones</sub> | **Graphic Preset**<br><sub>Monochrome Blueprint</sub> |
+
+---
+
 ## Key Highlights
 
 - **50 Neural Art Styles**: Curated collection spanning **Fine Art** (18 styles), **Anime** (16 styles), and **Graphic Design** (16 styles).
