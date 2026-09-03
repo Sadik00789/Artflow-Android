@@ -80,15 +80,36 @@ class MainActivity : ComponentActivity() {
 
     private fun loadBitmapFromUri(uri: Uri): Bitmap? {
         return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val source = ImageDecoder.createSource(contentResolver, uri)
-                ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
-                    decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-                    decoder.isMutableRequired = true
-                }
-            } else {
-                @Suppress("DEPRECATION")
-                MediaStore.Images.Media.getBitmap(contentResolver, uri)
+            val maxAllowedDimension = 2560
+
+            // 1. Decode bounds only first
+            val boundsOptions = android.graphics.BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            contentResolver.openInputStream(uri)?.use { stream ->
+                android.graphics.BitmapFactory.decodeStream(stream, null, boundsOptions)
+            }
+
+            val outWidth = boundsOptions.outWidth
+            val outHeight = boundsOptions.outHeight
+            if (outWidth <= 0 || outHeight <= 0) return null
+
+            // 2. Calculate inSampleSize to cap maximum dimension at 2560px
+            var inSampleSize = 1
+            val longestDim = maxOf(outWidth, outHeight)
+            while (longestDim / (inSampleSize * 2) >= maxAllowedDimension) {
+                inSampleSize *= 2
+            }
+
+            // 3. Decode actual bitmap with calculated downsampling
+            val decodeOptions = android.graphics.BitmapFactory.Options().apply {
+                this.inSampleSize = inSampleSize
+                inPreferredConfig = Bitmap.Config.ARGB_8888
+                inMutable = true
+            }
+
+            contentResolver.openInputStream(uri)?.use { stream ->
+                android.graphics.BitmapFactory.decodeStream(stream, null, decodeOptions)
             }
         } catch (e: Throwable) {
             null

@@ -13,27 +13,30 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 
 /**
- * Animated hardware crossfade layer between rendered bitmap transitions.
+ * Animated hardware crossfade layer between rendered style transitions.
+ * Keys on [selectedStyleId] so that slider adjustments (which update bitmap within the same style)
+ * update instantly without re-triggering repeated 280ms crossfade transitions.
  */
 @Composable
 fun CrossfadeLayer(
     bitmap: Bitmap?,
+    selectedStyleId: String? = null,
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Fit
 ) {
     Crossfade(
-        targetState = bitmap,
+        targetState = selectedStyleId,
         animationSpec = tween(durationMillis = 280),
         modifier = modifier,
         label = "ArtworkCrossfade"
-    ) { currentBitmap ->
+    ) { _ ->
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            if (currentBitmap != null) {
+            if (bitmap != null) {
                 Image(
-                    bitmap = currentBitmap.asImageBitmap(),
+                    bitmap = bitmap.asImageBitmap(),
                     contentDescription = "Neural Art Preview",
                     contentScale = contentScale,
                     modifier = Modifier.fillMaxSize()

@@ -109,16 +109,21 @@ fun EditorScreen(
                     }
                     is EditorUiState.Processing -> {
                         // Keep previous image visible while rendering with subtle indicator
-                        ViewportCanvas(bitmap = state.previousStylizedBitmap ?: state.canvasBitmap)
+                        ViewportCanvas(
+                            bitmap = state.previousStylizedBitmap ?: state.canvasBitmap,
+                            selectedStyleId = state.style.id
+                        )
                         ProcessingBadge(message = state.statusMessage)
                     }
                     is EditorUiState.Success -> {
-                        ViewportCanvas(bitmap = state.compositePreview)
+                        ViewportCanvas(
+                            bitmap = state.compositePreview,
+                            selectedStyleId = state.selectedStyle.id
+                        )
                     }
                     is EditorUiState.Exporting -> {
                         // While exporting, display current preview behind HUD
-                        val preview = (viewModel.uiState.value as? EditorUiState.Success)?.compositePreview
-                        ViewportCanvas(bitmap = preview)
+                        ViewportCanvas(bitmap = state.previewBitmap)
                     }
                     is EditorUiState.Error -> {
                         ErrorDisplay(message = state.message, onRetry = onPickImage)

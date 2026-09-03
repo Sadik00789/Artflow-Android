@@ -5,6 +5,7 @@ import android.util.Log
 import com.artflow.app.core.common.DispatcherProvider
 import com.artflow.app.core.common.Result
 import com.artflow.app.core.storage.AssetModelReader
+import com.artflow.app.engine.processing.ImageNormalizer
 import com.artflow.app.model.StylePreset
 import kotlinx.coroutines.withContext
 import org.tensorflow.lite.Interpreter
@@ -12,6 +13,7 @@ import org.tensorflow.lite.Interpreter
 /**
  * Core neural style transfer execution engine.
  * Thread-safe and strictly bound to [DispatcherProvider.ml] to prevent OpenCL context collision on the Adreno 619.
+ * Operates on static 768x768 tensors to satisfy OpenCL delegate requirements.
  */
 class StyleTransferEngine(
     private val modelReader: AssetModelReader,
@@ -27,40 +29,42 @@ class StyleTransferEngine(
 
     /**
      * Executes neural style transfer on the provided bitmap using the specified [StylePreset].
-     * Target resolution is typically 768px (normalized canvas).
+     * Uses static 768x768 canvas with symmetric padding and cropping to preserve aspect ratio.
      */
     suspend fun executeInference(
         bitmap: Bitmap,
         style: StylePreset
     ): Result<Bitmap> = withContext(dispatchers.ml) {
         try {
-            val width = bitmap.width
-            val height = bitmap.height
-
             // 1. Fetch or load Interpreter through the 2-slot ModelLruCache
             val cachedModel = getOrLoadModel(style.modelAssetPath)
             val interpreter = cachedModel.interpreter
 
-            // 2. Reshape dynamic input tensor [1, height, width, 3]
-            tensorHandler.reshapeInput(interpreter, height, width, 3)
+            // 2. Pad to static 768x768 square
+            val (paddedInput, padding) = ImageNormalizer.padToSquare768(bitmap)
 
-            // 3. Prepare direct native ByteBuffers
-            val inputBuffer = tensorHandler.createFloatBuffer(height, width, 3)
-            val outputBuffer = tensorHandler.createFloatBuffer(height, width, 3)
+            // 3. Populate pre-allocated static 768x768 input buffer
+            val inputBuffer = tensorHandler.staticInputBuffer
+            val outputBuffer = tensorHandler.staticOutputBuffer
+            tensorHandler.bitmapToFloatBuffer(paddedInput, inputBuffer)
 
-            // 4. Fill input buffer with [0.0, 255.0] RGB floats
-            tensorHandler.bitmapToFloatBuffer(bitmap, inputBuffer)
-
-            // 5. Execute inference
+            // 4. Execute inference on static 768x768 canvas
             val startTime = System.currentTimeMillis()
             interpreter.run(inputBuffer, outputBuffer)
             val duration = System.currentTimeMillis() - startTime
-            Log.d(TAG, "Inference completed for style '${style.name}' (${width}x${height}) in ${duration}ms")
+            Log.d(TAG, "Inference completed for style '${style.name}' (768x768) in ${duration}ms")
 
-            // 6. Convert output float buffer to Bitmap
-            val stylizedBitmap = tensorHandler.floatBufferToBitmap(outputBuffer, width, height)
+            // 5. Convert output float buffer to Bitmap
+            val paddedOutput = tensorHandler.floatBufferToBitmap(
+                outputBuffer,
+                DynamicTensorHandler.STATIC_DIMENSION,
+                DynamicTensorHandler.STATIC_DIMENSION
+            )
 
-            Result.Success(stylizedBitmap)
+            // 6. Crop back to original normalized dimensions
+            val croppedOutput = ImageNormalizer.cropFromSquare768(paddedOutput, padding)
+
+            Result.Success(croppedOutput)
         } catch (e: Throwable) {
             Log.e(TAG, "Inference failed for style '${style.name}': ${e.message}", e)
             Result.Error(e, "Inference failed: ${e.localizedMessage}")
@@ -76,10 +80,25 @@ class StyleTransferEngine(
         Log.d(TAG, "Loading model from assets: $assetPath")
         val modelBuffer = modelReader.loadModelFile(assetPath)
         val optionsHolder = gpuDelegateProvider.createInterpreterOptions()
-        val interpreter = Interpreter(modelBuffer, optionsHolder.options)
 
-        cached = CachedModel(interpreter, optionsHolder)
-        lruCache.put(assetPath, cached)
-        return cached
+        val cachedModel = try {
+            val gpuInterpreter = Interpreter(modelBuffer, optionsHolder.options)
+            CachedModel(gpuInterpreter, optionsHolder)
+        } catch (e: Throwable) {
+            Log.w(TAG, "GPU delegate application failed for $assetPath, falling back to CPU XNNPACK", e)
+            try {
+                optionsHolder.close()
+            } catch (ignored: Throwable) {}
+
+            val cpuOptions = Interpreter.Options().apply {
+                setNumThreads(4)
+                setUseXNNPACK(true)
+            }
+            val cpuInterpreter = Interpreter(modelBuffer, cpuOptions)
+            CachedModel(cpuInterpreter, null)
+        }
+
+        lruCache.put(assetPath, cachedModel)
+        return cachedModel
     }
 }

@@ -55,7 +55,7 @@ class ArtFlowApplication : Application() {
         dispatchers = StandardDispatcherProvider()
         assetModelReader = AssetModelReader(this)
         gpuDelegateProvider = GpuDelegateProvider()
-        modelLruCache = ModelLruCache(capacity = 2)
+        modelLruCache = ModelLruCache(capacity = 2, dispatchers = dispatchers)
         tensorHandler = DynamicTensorHandler()
 
         styleTransferEngine = StyleTransferEngine(
@@ -68,14 +68,12 @@ class ArtFlowApplication : Application() {
 
         portraitSegmenter = PortraitSegmenter(
             modelReader = assetModelReader,
-            gpuDelegateProvider = gpuDelegateProvider,
             tensorHandler = tensorHandler,
             dispatchers = dispatchers
         )
 
         fsrcnnUpscaler = FsrcnnUpscaler(
             modelReader = assetModelReader,
-            gpuDelegateProvider = gpuDelegateProvider,
             tensorHandler = tensorHandler,
             dispatchers = dispatchers
         )

@@ -76,7 +76,7 @@ class TransformerNetTF(tf.Module):
         out_w = in_shape[2] * scale
         return tf.image.resize(x, [out_h, out_w], method="nearest")
 
-    @tf.function(input_signature=[tf.TensorSpec(shape=[1, None, None, 3], dtype=tf.float32, name="input")])
+    @tf.function(input_signature=[tf.TensorSpec(shape=[1, 768, 768, 3], dtype=tf.float32, name="input")])
     def __call__(self, x):
         # Initial 3 conv blocks
         y = self._conv_block(x, self.w_c1, self.b_c1, pad=4, stride=1)
@@ -117,8 +117,8 @@ class AnimeGANGeneratorTF(tf.Module):
     """
     TensorFlow implementation of AnimeGANv2 Generator (Bryan D. Lee / TachibanaYoshino).
     Conforms to ArtFlow Graph Contract:
-    Input: [1, H, W, 3] float32 in [0.0, 255.0]
-    Output: [1, H, W, 3] float32 in [0.0, 255.0]
+    Input: [1, 768, 768, 3] float32 in [0.0, 255.0]
+    Output: [1, 768, 768, 3] float32 in [0.0, 255.0]
     """
     def __init__(self, pt_checkpoint_path: str):
         super().__init__()
@@ -236,13 +236,16 @@ class AnimeGANGeneratorTF(tf.Module):
         out_w = in_shape[2] * scale
         return tf.image.resize(x, [out_h, out_w], method="bilinear")
 
-    @tf.function(input_signature=[tf.TensorSpec(shape=[1, None, None, 3], dtype=tf.float32, name="input")])
+    @tf.function(input_signature=[tf.TensorSpec(shape=[1, 768, 768, 3], dtype=tf.float32, name="input")])
     def __call__(self, x):
         # Normalize [0.0, 255.0] to [-1.0, 1.0]
         x_norm = (x / 127.5) - 1.0
 
+        # RGB to BGR channel reversal as AnimeGANv2 expects BGR
+        x_bgr = tf.reverse(x_norm, axis=[-1])
+
         # block_a
-        y = self._conv_norm_lrelu(x_norm, self.ba0, pad_val=3, stride=1)
+        y = self._conv_norm_lrelu(x_bgr, self.ba0, pad_val=3, stride=1)
         # padding=(0, 1, 0, 1) in PyTorch is: left=0, right=1, top=0, bottom=1
         y = self._conv_norm_lrelu(y, self.ba1, pad_val=(0, 1, 0, 1), stride=2)
         y = self._conv_norm_lrelu(y, self.ba2, pad_val=1, stride=1)
@@ -273,6 +276,9 @@ class AnimeGANGeneratorTF(tf.Module):
         # out_layer
         y = tf.nn.conv2d(y, self.w_out, strides=[1, 1, 1, 1], padding="VALID")
         y = tf.tanh(y)
+
+        # Reverse back from BGR to RGB
+        y = tf.reverse(y, axis=[-1])
 
         # Scale from [-1.0, 1.0] to [0.0, 255.0]
         y = (y + 1.0) * 127.5

@@ -6,17 +6,16 @@ import com.artflow.app.core.common.DispatcherProvider
 import com.artflow.app.core.common.Result
 import com.artflow.app.core.storage.AssetModelReader
 import com.artflow.app.engine.DynamicTensorHandler
-import com.artflow.app.engine.GpuDelegateProvider
 import kotlinx.coroutines.withContext
 import org.tensorflow.lite.Interpreter
 
 /**
  * Step 1 of Studio Export Pipeline:
  * On-device FSRCNN 2x super-resolution upscaler (expanding 768px stylized output to 1536px).
+ * Runs strictly on CPU via multi-threaded XNNPACK to preserve GPU context exclusively for style transfer.
  */
 class FsrcnnUpscaler(
     private val modelReader: AssetModelReader,
-    private val gpuDelegateProvider: GpuDelegateProvider,
     private val tensorHandler: DynamicTensorHandler,
     private val dispatchers: DispatcherProvider
 ) : AutoCloseable {
@@ -27,7 +26,6 @@ class FsrcnnUpscaler(
     }
 
     private var interpreter: Interpreter? = null
-    private var optionsHolder: GpuDelegateProvider.InterpreterOptionsHolder? = null
 
     /**
      * Upscales [bitmap] 2x using the FSRCNN neural network.
@@ -41,7 +39,13 @@ class FsrcnnUpscaler(
 
             val activeInterpreter = getOrInitInterpreter()
 
-            tensorHandler.reshapeInput(activeInterpreter, inHeight, inWidth, 3)
+            // Dynamic reshape on CPU
+            val currentShape = activeInterpreter.getInputTensor(0).shape()
+            val targetShape = intArrayOf(1, inHeight, inWidth, 3)
+            if (!currentShape.contentEquals(targetShape)) {
+                activeInterpreter.resizeInput(0, targetShape)
+                activeInterpreter.allocateTensors()
+            }
 
             val inputBuffer = tensorHandler.createFloatBuffer(inHeight, inWidth, 3)
             val outputBuffer = tensorHandler.createFloatBuffer(outHeight, outWidth, 3)
@@ -64,9 +68,11 @@ class FsrcnnUpscaler(
     private fun getOrInitInterpreter(): Interpreter {
         if (interpreter == null) {
             val buffer = modelReader.loadModelFile(MODEL_PATH)
-            val holder = gpuDelegateProvider.createInterpreterOptions()
-            optionsHolder = holder
-            interpreter = Interpreter(buffer, holder.options)
+            val cpuOptions = Interpreter.Options().apply {
+                setNumThreads(4)
+                setUseXNNPACK(true)
+            }
+            interpreter = Interpreter(buffer, cpuOptions)
         }
         return interpreter!!
     }
@@ -74,8 +80,8 @@ class FsrcnnUpscaler(
     override fun close() {
         try {
             interpreter?.close()
-        } finally {
-            optionsHolder?.close()
+        } catch (e: Throwable) {
+            Log.e(TAG, "Error closing FsrcnnUpscaler interpreter: ${e.message}")
         }
     }
 }

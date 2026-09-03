@@ -31,6 +31,7 @@ import com.artflow.app.ui.theme.StudioDark
 @Composable
 fun ViewportCanvas(
     bitmap: Bitmap?,
+    selectedStyleId: String? = null,
     modifier: Modifier = Modifier
 ) {
     var scale by remember { mutableFloatStateOf(1.0f) }
@@ -78,6 +79,7 @@ fun ViewportCanvas(
         ) {
             CrossfadeLayer(
                 bitmap = bitmap,
+                selectedStyleId = selectedStyleId,
                 modifier = Modifier.fillMaxSize()
             )
         }

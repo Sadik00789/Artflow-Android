@@ -1,25 +1,37 @@
 package com.artflow.app
 
+import com.artflow.app.core.common.DispatcherProvider
 import com.artflow.app.engine.CachedModel
 import com.artflow.app.engine.ModelLruCache
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.tensorflow.lite.Interpreter
-import java.util.concurrent.Executor
 
 /**
  * Unit tests verifying 2-slot ModelLruCache capacity constraints and asynchronous background close execution.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class ModelLruCacheTest {
+
+    private val testDispatcher = UnconfinedTestDispatcher()
+
+    private val testDispatcherProvider = object : DispatcherProvider {
+        override val main: CoroutineDispatcher = testDispatcher
+        override val io: CoroutineDispatcher = testDispatcher
+        override val default: CoroutineDispatcher = testDispatcher
+        override val ml: CoroutineDispatcher = testDispatcher
+    }
 
     @Test
     fun testEvictsOldestInterpreterOnThirdLoad() {
-        val synchronousExecutor = Executor { it.run() }
-        val cache = ModelLruCache(capacity = 2, backgroundExecutor = synchronousExecutor)
+        val cache = ModelLruCache(capacity = 2, dispatchers = testDispatcherProvider)
 
         val interp1 = mockk<Interpreter>(relaxed = true)
         val interp2 = mockk<Interpreter>(relaxed = true)
@@ -52,8 +64,7 @@ class ModelLruCacheTest {
 
     @Test
     fun testAccessOrderUpdatesLru() {
-        val synchronousExecutor = Executor { it.run() }
-        val cache = ModelLruCache(capacity = 2, backgroundExecutor = synchronousExecutor)
+        val cache = ModelLruCache(capacity = 2, dispatchers = testDispatcherProvider)
 
         val interp1 = mockk<Interpreter>(relaxed = true)
         val interp2 = mockk<Interpreter>(relaxed = true)

@@ -103,6 +103,7 @@ class TransformerNet(nn.Module):
 def load_transformer_net(checkpoint_path: str) -> TransformerNet:
     """
     Instantiates TransformerNet and loads weights, handling module prefix and version variations.
+    Supports both conv1.weight and conv1.conv2d.weight key structures.
     """
     net = TransformerNet()
     state_dict: Dict[str, Any] = torch.load(checkpoint_path, map_location="cpu")
@@ -111,6 +112,11 @@ def load_transformer_net(checkpoint_path: str) -> TransformerNet:
     for k, v in state_dict.items():
         key = k.replace("module.", "")
         cleaned_dict[key] = v
+        # Also map conv1.weight -> conv1.conv2d.weight if needed
+        if ".weight" in key and ".conv2d.weight" not in key and not key.startswith("in"):
+            cleaned_dict[key.replace(".weight", ".conv2d.weight")] = v
+        if ".bias" in key and ".conv2d.bias" not in key and not key.startswith("in"):
+            cleaned_dict[key.replace(".bias", ".conv2d.bias")] = v
 
     model_dict = net.state_dict()
     matching_dict = {

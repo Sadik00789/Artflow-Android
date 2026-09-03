@@ -17,7 +17,8 @@ object ThresholdedUnsharpMask {
     private const val SHARPEN_FACTOR = 1.25f
 
     /**
-     * Applies thresholded unsharp masking to [bitmap].
+     * Applies thresholded unsharp masking to [bitmap] strictly on the Luminance (Y) channel.
+     * Prevents chromatic fringing / color halos and uses direct indexing without inner array allocations.
      */
     fun applySharpening(bitmap: Bitmap): Bitmap {
         val width = bitmap.width
@@ -43,36 +44,36 @@ object ThresholdedUnsharpMask {
                 val cG = (centerColor shr 8) and 0xFF
                 val cB = centerColor and 0xFF
 
-                // Compute 3x3 box average for each channel
-                var sumR = 0
-                var sumG = 0
-                var sumB = 0
+                // Center luminance Y: 0.299*R + 0.587*G + 0.114*B
+                val yCenter = 0.299f * cR + 0.587f * cG + 0.114f * cB
 
-                val neighbors = intArrayOf(
-                    inPixels[yPrevOffset + xPrev], inPixels[yPrevOffset + x], inPixels[yPrevOffset + xNext],
-                    inPixels[yOffset + xPrev],     centerColor,              inPixels[yOffset + xNext],
-                    inPixels[yNextOffset + xPrev], inPixels[yNextOffset + x], inPixels[yNextOffset + xNext]
-                )
+                // 3x3 neighbor pixels via direct indexing (zero allocations)
+                val p00 = inPixels[yPrevOffset + xPrev]
+                val p01 = inPixels[yPrevOffset + x]
+                val p02 = inPixels[yPrevOffset + xNext]
+                val p10 = inPixels[yOffset + xPrev]
+                val p11 = centerColor
+                val p12 = inPixels[yOffset + xNext]
+                val p20 = inPixels[yNextOffset + xPrev]
+                val p21 = inPixels[yNextOffset + x]
+                val p22 = inPixels[yNextOffset + xNext]
 
-                for (p in neighbors) {
-                    sumR += (p shr 16) and 0xFF
-                    sumG += (p shr 8) and 0xFF
-                    sumB += p and 0xFF
+                val sumY = luminanceOf(p00) + luminanceOf(p01) + luminanceOf(p02) +
+                           luminanceOf(p10) + yCenter          + luminanceOf(p12) +
+                           luminanceOf(p20) + luminanceOf(p21) + luminanceOf(p22)
+
+                val avgY = sumY / 9.0f
+                val deltaY = yCenter - avgY
+
+                if (abs(deltaY) > EDGE_THRESHOLD) {
+                    val correction = (deltaY * SHARPEN_FACTOR).coerceIn(-MAX_INTENSITY_CLAMP, MAX_INTENSITY_CLAMP)
+                    val newR = (cR + correction).roundToInt().coerceIn(0, 255)
+                    val newG = (cG + correction).roundToInt().coerceIn(0, 255)
+                    val newB = (cB + correction).roundToInt().coerceIn(0, 255)
+                    outPixels[yOffset + x] = (0xFF shl 24) or (newR shl 16) or (newG shl 8) or newB
+                } else {
+                    outPixels[yOffset + x] = centerColor
                 }
-
-                val avgR = sumR / 9.0f
-                val avgG = sumG / 9.0f
-                val avgB = sumB / 9.0f
-
-                val deltaR = cR - avgR
-                val deltaG = cG - avgG
-                val deltaB = cB - avgB
-
-                val newR = sharpenChannel(cR, deltaR)
-                val newG = sharpenChannel(cG, deltaG)
-                val newB = sharpenChannel(cB, deltaB)
-
-                outPixels[yOffset + x] = (0xFF shl 24) or (newR shl 16) or (newG shl 8) or newB
             }
         }
 
@@ -81,11 +82,11 @@ object ThresholdedUnsharpMask {
         return result
     }
 
-    private fun sharpenChannel(originalValue: Int, delta: Float): Int {
-        if (abs(delta) > EDGE_THRESHOLD) {
-            val correction = (delta * SHARPEN_FACTOR).coerceIn(-MAX_INTENSITY_CLAMP, MAX_INTENSITY_CLAMP)
-            return (originalValue + correction).roundToInt().coerceIn(0, 255)
-        }
-        return originalValue
+    @Suppress("NOTHING_TO_INLINE")
+    private inline fun luminanceOf(pixel: Int): Float {
+        val r = (pixel shr 16) and 0xFF
+        val g = (pixel shr 8) and 0xFF
+        val b = pixel and 0xFF
+        return 0.299f * r + 0.587f * g + 0.114f * b
     }
 }

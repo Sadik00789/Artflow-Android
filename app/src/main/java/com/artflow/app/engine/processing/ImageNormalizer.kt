@@ -1,10 +1,23 @@
 package com.artflow.app.engine.processing
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import kotlin.math.roundToInt
 
 /**
- * Normalizes input image dimensions to the target canvas baseline (768px on longest side, snapped to even integers).
+ * Padding parameters describing where an image was placed inside the 768x768 static canvas.
+ */
+data class CanvasPadding(
+    val padLeft: Int,
+    val padTop: Int,
+    val originalWidth: Int,
+    val originalHeight: Int
+)
+
+/**
+ * Normalizes input image dimensions to the target canvas baseline (768px on longest side, snapped to even integers),
+ * and handles symmetric padding and cropping for static 768x768 TFLite OpenCL inference.
  */
 object ImageNormalizer {
 
@@ -49,6 +62,58 @@ object ImageNormalizer {
         newHeight = snapToEven(newHeight.coerceAtLeast(2))
 
         return Pair(newWidth, newHeight)
+    }
+
+    /**
+     * Scales [source] so its longest edge is 768px, then pads symmetrically to a 768x768 square.
+     * Uses black letterboxing.
+     */
+    fun padToSquare768(source: Bitmap): Pair<Bitmap, CanvasPadding> {
+        val scaled = normalizeCanvas(source, DEFAULT_MAX_DIMENSION)
+        val sWidth = scaled.width
+        val sHeight = scaled.height
+
+        if (sWidth == DEFAULT_MAX_DIMENSION && sHeight == DEFAULT_MAX_DIMENSION) {
+            return Pair(scaled, CanvasPadding(0, 0, sWidth, sHeight))
+        }
+
+        val padLeft = (DEFAULT_MAX_DIMENSION - sWidth) / 2
+        val padTop = (DEFAULT_MAX_DIMENSION - sHeight) / 2
+
+        val paddedBitmap = Bitmap.createBitmap(
+            DEFAULT_MAX_DIMENSION,
+            DEFAULT_MAX_DIMENSION,
+            Bitmap.Config.ARGB_8888
+        )
+        val canvas = Canvas(paddedBitmap)
+        canvas.drawColor(Color.BLACK)
+        canvas.drawBitmap(scaled, padLeft.toFloat(), padTop.toFloat(), null)
+
+        val padding = CanvasPadding(
+            padLeft = padLeft,
+            padTop = padTop,
+            originalWidth = sWidth,
+            originalHeight = sHeight
+        )
+        return Pair(paddedBitmap, padding)
+    }
+
+    /**
+     * Restores original aspect ratio from the 768x768 square padded bitmap using [CanvasPadding].
+     */
+    fun cropFromSquare768(padded: Bitmap, padding: CanvasPadding): Bitmap {
+        if (padding.padLeft == 0 && padding.padTop == 0 &&
+            padding.originalWidth == padded.width && padding.originalHeight == padded.height
+        ) {
+            return padded
+        }
+        return Bitmap.createBitmap(
+            padded,
+            padding.padLeft,
+            padding.padTop,
+            padding.originalWidth,
+            padding.originalHeight
+        )
     }
 
     private fun snapToEven(value: Int): Int {

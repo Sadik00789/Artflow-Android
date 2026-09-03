@@ -11,24 +11,28 @@ import java.nio.ByteOrder
  */
 class DynamicTensorHandler {
 
-    /**
-     * Reshapes input tensor 0 of the interpreter to [1, height, width, 3] and reallocates tensors.
-     */
-    fun reshapeInput(interpreter: Interpreter, height: Int, width: Int, channels: Int = 3) {
-        val currentShape = interpreter.getInputTensor(0).shape()
-        val targetShape = intArrayOf(1, height, width, channels)
-        if (!currentShape.contentEquals(targetShape)) {
-            interpreter.resizeInput(0, targetShape)
-            interpreter.allocateTensors()
-        }
+    companion object {
+        const val STATIC_DIMENSION = 768
+        const val CHANNELS = 3
+        const val BYTES_PER_FLOAT = 4
+        const val STATIC_BUFFER_CAPACITY = 1 * STATIC_DIMENSION * STATIC_DIMENSION * CHANNELS * BYTES_PER_FLOAT
+    }
+
+    /** Pre-allocated direct buffer for static 768x768x3 float input tensor */
+    val staticInputBuffer: ByteBuffer = ByteBuffer.allocateDirect(STATIC_BUFFER_CAPACITY).apply {
+        order(ByteOrder.nativeOrder())
+    }
+
+    /** Pre-allocated direct buffer for static 768x768x3 float output tensor */
+    val staticOutputBuffer: ByteBuffer = ByteBuffer.allocateDirect(STATIC_BUFFER_CAPACITY).apply {
+        order(ByteOrder.nativeOrder())
     }
 
     /**
-     * Allocates a native direct [ByteBuffer] formatted for float32 elements.
+     * Allocates a native direct [ByteBuffer] formatted for float32 elements (for auxiliary CPU models).
      */
     fun createFloatBuffer(height: Int, width: Int, channels: Int = 3): ByteBuffer {
-        val bytesPerFloat = 4
-        val capacity = 1 * height * width * channels * bytesPerFloat
+        val capacity = 1 * height * width * channels * BYTES_PER_FLOAT
         return ByteBuffer.allocateDirect(capacity).apply {
             order(ByteOrder.nativeOrder())
         }

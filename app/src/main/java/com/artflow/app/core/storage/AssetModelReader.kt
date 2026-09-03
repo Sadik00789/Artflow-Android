@@ -20,13 +20,11 @@ class AssetModelReader(private val context: Context) {
     @Throws(IOException::class)
     fun loadModelFile(assetPath: String): MappedByteBuffer {
         val assetFd = context.assets.openFd(assetPath)
-        assetFd.use { fd ->
-            FileInputStream(fd.fileDescriptor).use { inputStream ->
-                val fileChannel = inputStream.channel
-                val startOffset = fd.startOffset
-                val declaredLength = fd.declaredLength
-                return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
-            }
-        }
+        val fileChannel = FileInputStream(assetFd.fileDescriptor).channel
+        val startOffset = assetFd.startOffset
+        val declaredLength = assetFd.declaredLength
+        val buffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
+        assetFd.close() // Safe to close the asset descriptor; do NOT close fileChannel or its stream
+        return buffer
     }
 }

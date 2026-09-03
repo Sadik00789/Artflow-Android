@@ -49,6 +49,7 @@ class EditorViewModel(
     // Active in-flight coroutine jobs for cancellation
     private var activeInferenceJob: Job? = null
     private var activeExportJob: Job? = null
+    private var recompositeJob: Job? = null
 
     // Session cache
     private var originalPhoto: Bitmap? = null
@@ -152,11 +153,14 @@ class EditorViewModel(
     }
 
     /**
-     * Updates blend and intensity sliders with instant WYSIWYG recomposition (no model re-run needed).
+     * Updates blend and intensity sliders with instant asynchronous WYSIWYG recomposition (cancels prior running recompositions).
      */
     fun updateSettings(newSettings: EditorSettings) {
         _settings.value = newSettings
-        recomposite()
+        recompositeJob?.cancel()
+        recompositeJob = viewModelScope.launch(dispatchers.default) {
+            recomposite()
+        }
     }
 
     private fun recomposite() {
@@ -193,7 +197,8 @@ class EditorViewModel(
         activeExportJob?.cancel()
         _uiState.value = EditorUiState.Exporting(
             stage = ExportStage.SuperResolution,
-            progressFraction = 0.1f
+            progressFraction = 0.1f,
+            previewBitmap = canvasStylized
         )
 
         activeExportJob = viewModelScope.launch(dispatchers.default) {
@@ -201,10 +206,15 @@ class EditorViewModel(
                 originalHighResPhoto = original,
                 canvasStylizedImage = canvasStylized,
                 style = currentStyle,
+                subjectBlend = _settings.value.subjectBlend,
+                segmentationMask = segmentationMask,
+                maskWidth = normalizedCanvas?.width ?: 0,
+                maskHeight = normalizedCanvas?.height ?: 0,
                 onProgress = { stage ->
                     _uiState.value = EditorUiState.Exporting(
                         stage = stage,
-                        progressFraction = stage.progressFraction
+                        progressFraction = stage.progressFraction,
+                        previewBitmap = canvasStylized
                     )
                 }
             )
@@ -229,6 +239,7 @@ class EditorViewModel(
     fun reset() {
         activeInferenceJob?.cancel()
         activeExportJob?.cancel()
+        recompositeJob?.cancel()
         originalPhoto = null
         normalizedCanvas = null
         segmentationMask = null

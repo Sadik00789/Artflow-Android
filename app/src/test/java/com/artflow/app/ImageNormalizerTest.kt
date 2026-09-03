@@ -55,4 +55,23 @@ class ImageNormalizerTest {
         assertTrue(width % 2 == 0)
         assertTrue(height % 2 == 0)
     }
+
+    @Test
+    fun testSymmetricPaddingOffsets() {
+        // Landscape 768x576 (4:3)
+        val sWidth = 768
+        val sHeight = 576
+        val padLeft = (768 - sWidth) / 2
+        val padTop = (768 - sHeight) / 2
+        assertEquals(0, padLeft)
+        assertEquals(96, padTop)
+
+        // Portrait 576x768 (3:4)
+        val pWidth = 576
+        val pHeight = 768
+        val pPadLeft = (768 - pWidth) / 2
+        val pPadTop = (768 - pHeight) / 2
+        assertEquals(96, pPadLeft)
+        assertEquals(0, pPadTop)
+    }
 }

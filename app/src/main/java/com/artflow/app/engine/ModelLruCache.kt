@@ -1,9 +1,10 @@
 package com.artflow.app.engine
 
 import android.util.Log
+import com.artflow.app.core.common.DispatcherProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import org.tensorflow.lite.Interpreter
-import java.util.concurrent.Executor
-import java.util.concurrent.Executors
 
 /**
  * Encapsulates an active [Interpreter] and its optional native GPU delegate holder.
@@ -29,13 +30,11 @@ data class CachedModel(
 /**
  * Thread-safe 2-slot LRU Cache for neural network models.
  * Strictly maintains <= 2 active models in memory to avoid exhausting Adreno 619 OpenCL contexts.
- * Evicts and closes the oldest model on a background thread.
+ * Evicts and closes the oldest model strictly on [dispatchers.ml] to maintain OpenCL thread affinity.
  */
 class ModelLruCache(
     private val capacity: Int = 2,
-    private val backgroundExecutor: Executor = Executors.newSingleThreadExecutor { r ->
-        Thread(r, "ArtFlow-ModelEviction-Worker").apply { priority = Thread.MIN_PRIORITY }
-    }
+    private val dispatchers: DispatcherProvider
 ) : AutoCloseable {
 
     companion object {
@@ -51,10 +50,10 @@ class ModelLruCache(
                 val modelToClose = eldest.value
                 val key = eldest.key
                 Log.d(TAG, "Evicting model '$key' to maintain capacity $capacity.")
-                backgroundExecutor.execute {
+                CoroutineScope(dispatchers.ml).launch {
                     try {
                         modelToClose.close()
-                        Log.d(TAG, "Successfully closed evicted model '$key' on background thread.")
+                        Log.d(TAG, "Successfully closed evicted model '$key' on ML dispatcher.")
                     } catch (e: Throwable) {
                         Log.e(TAG, "Exception while closing evicted model '$key': ${e.message}")
                     }
@@ -78,8 +77,12 @@ class ModelLruCache(
     fun put(key: String, model: CachedModel) = synchronized(lock) {
         val existing = cache.put(key, model)
         if (existing != null && existing !== model) {
-            backgroundExecutor.execute {
-                existing.close()
+            CoroutineScope(dispatchers.ml).launch {
+                try {
+                    existing.close()
+                } catch (e: Throwable) {
+                    Log.e(TAG, "Exception closing replaced model: ${e.message}")
+                }
             }
         }
     }
@@ -104,8 +107,12 @@ class ModelLruCache(
     fun remove(key: String): CachedModel? = synchronized(lock) {
         val removed = cache.remove(key)
         if (removed != null) {
-            backgroundExecutor.execute {
-                removed.close()
+            CoroutineScope(dispatchers.ml).launch {
+                try {
+                    removed.close()
+                } catch (e: Throwable) {
+                    Log.e(TAG, "Exception closing removed model: ${e.message}")
+                }
             }
         }
         removed

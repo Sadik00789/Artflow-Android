@@ -47,6 +47,7 @@ sealed interface EditorUiState {
                    canvasOriginal == other.canvasOriginal &&
                    stylizedCanvas == other.stylizedCanvas &&
                    compositePreview == other.compositePreview &&
+                   java.util.Arrays.equals(segmentationMask, other.segmentationMask) &&
                    selectedStyle == other.selectedStyle &&
                    settings == other.settings &&
                    exportedUri == other.exportedUri
@@ -57,6 +58,7 @@ sealed interface EditorUiState {
             result = 31 * result + canvasOriginal.hashCode()
             result = 31 * result + stylizedCanvas.hashCode()
             result = 31 * result + compositePreview.hashCode()
+            result = 31 * result + (segmentationMask?.contentHashCode() ?: 0)
             result = 31 * result + selectedStyle.hashCode()
             result = 31 * result + settings.hashCode()
             result = 31 * result + (exportedUri?.hashCode() ?: 0)
@@ -69,7 +71,8 @@ sealed interface EditorUiState {
      */
     data class Exporting(
         val stage: ExportStage,
-        val progressFraction: Float
+        val progressFraction: Float,
+        val previewBitmap: Bitmap
     ) : EditorUiState
 
     /**
