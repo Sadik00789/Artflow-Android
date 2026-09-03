@@ -16,6 +16,7 @@ import com.artflow.app.engine.segmentation.MaskProcessor
 import com.artflow.app.engine.segmentation.PortraitSegmenter
 import com.artflow.app.model.EditorSettings
 import com.artflow.app.model.StyleCatalog
+import com.artflow.app.model.StyleCategory
 import com.artflow.app.model.StylePreset
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -103,6 +104,11 @@ class EditorViewModel(
     fun selectStyle(preset: StylePreset) {
         val canvas = normalizedCanvas ?: return
         currentStyle = preset
+
+        // If switching to Anime or Graphic, reset Subject Preserve to 0 so the face transforms
+        if (preset.category == StyleCategory.ANIME || preset.category == StyleCategory.GRAPHIC) {
+            _settings.value = _settings.value.copy(subjectBlend = 0.0f)
+        }
 
         // CANCEL any active in-flight inference job immediately
         activeInferenceJob?.cancel(CancellationException("User switched to style: ${preset.name}"))

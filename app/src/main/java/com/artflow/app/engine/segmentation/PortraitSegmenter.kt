@@ -37,7 +37,9 @@ class PortraitSegmenter(
                 return@withContext Result.Error(IllegalStateException("No confidence mask produced"))
             }
 
-            val maskImage = confidenceMasksOpt.get()[0]
+            val maskList = confidenceMasksOpt.get()
+            // MediaPipe ImageSegmenter: Index 0 is Background, Index 1 is Person
+            val maskImage = if (maskList.size > 1) maskList[1] else maskList[0]
             val maskWidth = maskImage.width
             val maskHeight = maskImage.height
             val maskBuffer = ByteBufferExtractor.extract(maskImage).asFloatBuffer()

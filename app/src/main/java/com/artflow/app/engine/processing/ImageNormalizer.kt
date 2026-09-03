@@ -86,7 +86,9 @@ object ImageNormalizer {
             Bitmap.Config.ARGB_8888
         )
         val canvas = Canvas(paddedBitmap)
-        canvas.drawColor(Color.BLACK)
+        // Fill padding with the border color to preserve normalization statistics
+        val borderPixel = scaled.getPixel(0, 0)
+        canvas.drawColor(borderPixel)
         canvas.drawBitmap(scaled, padLeft.toFloat(), padTop.toFloat(), null)
 
         val padding = CanvasPadding(

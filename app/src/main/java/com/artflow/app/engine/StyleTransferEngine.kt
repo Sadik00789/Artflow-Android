@@ -6,6 +6,7 @@ import com.artflow.app.core.common.DispatcherProvider
 import com.artflow.app.core.common.Result
 import com.artflow.app.core.storage.AssetModelReader
 import com.artflow.app.engine.processing.ImageNormalizer
+import com.artflow.app.engine.processing.StylePostProcessor
 import com.artflow.app.model.StylePreset
 import kotlinx.coroutines.withContext
 import org.tensorflow.lite.Interpreter
@@ -64,7 +65,10 @@ class StyleTransferEngine(
             // 6. Crop back to original normalized dimensions
             val croppedOutput = ImageNormalizer.cropFromSquare512(paddedOutput, padding)
 
-            Result.Success(croppedOutput)
+            // 7. Apply tailored aesthetic color and tone grading per style preset
+            val finalizedArt = StylePostProcessor.applyAestheticGrading(croppedOutput, style.id)
+
+            Result.Success(finalizedArt)
         } catch (e: Throwable) {
             Log.e(TAG, "Inference failed for style '${style.name}': ${e.message}", e)
             Result.Error(e, "Inference failed: ${e.localizedMessage}")
