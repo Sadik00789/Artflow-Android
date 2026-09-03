@@ -6,12 +6,6 @@ import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.gpu.CompatibilityList
 import org.tensorflow.lite.gpu.GpuDelegate
 
-/**
- * Manages TensorFlow Lite execution delegates:
- * Configures OpenCL GPU delegate with FP16 precision loss allowed, fast single answer preference,
- * and persistent disk shader cache serialization on supported hardware (such as Snapdragon 695 / Adreno 619).
- * Automatically falls back to a 4-thread CPU XNNPACK configuration.
- */
 class GpuDelegateProvider(private val context: Context) {
 
     companion object {
@@ -22,30 +16,32 @@ class GpuDelegateProvider(private val context: Context) {
     private val compatList = CompatibilityList()
     val isGpuSupported: Boolean = compatList.isDelegateSupportedOnThisDevice
 
-    /**
-     * Creates an [Interpreter.Options] configured for best performance on the target hardware.
-     */
-    fun createInterpreterOptions(): InterpreterOptionsHolder {
+    fun createInterpreterOptions(modelAssetPath: String? = null): InterpreterOptionsHolder {
         val options = Interpreter.Options()
         var gpuDelegate: GpuDelegate? = null
 
         if (isGpuSupported) {
             try {
+                val token = if (modelAssetPath != null) {
+                    "artflow_ocl_" + modelAssetPath.substringAfterLast("/").substringBefore(".tflite")
+                } else {
+                    "artflow_ocl_default"
+                }
+
                 val delegateOptions = compatList.bestOptionsForThisDevice.apply {
                     setPrecisionLossAllowed(true)
                     setInferencePreference(GpuDelegate.Options.INFERENCE_PREFERENCE_FAST_SINGLE_ANSWER)
-                    setSerializationParams(context.cacheDir.absolutePath, "artflow_opencl_cache")
+                    setSerializationParams(context.cacheDir.absolutePath, token)
                 }
                 gpuDelegate = GpuDelegate(delegateOptions)
                 options.addDelegate(gpuDelegate)
-                Log.i(TAG, "OpenCL GPU Delegate initialized successfully (FP16, FAST_SINGLE_ANSWER, cacheDir=${context.cacheDir.absolutePath}).")
+                Log.i(TAG, "OpenCL GPU Delegate configured with token: $token")
             } catch (e: Throwable) {
-                Log.w(TAG, "GPU Delegate initialization failed, falling back to CPU XNNPACK: ${e.message}")
+                Log.w(TAG, "GPU Delegate initialization failed, falling back to CPU: ${e.message}")
                 gpuDelegate = null
                 configureCpuFallback(options)
             }
         } else {
-            Log.i(TAG, "GPU Delegate not supported on this device. Using CPU XNNPACK.")
             configureCpuFallback(options)
         }
 

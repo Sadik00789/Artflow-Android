@@ -2,6 +2,7 @@ package com.artflow.app.engine.segmentation
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.util.Log
 import com.artflow.app.core.common.DispatcherProvider
 import com.artflow.app.core.common.Result
@@ -13,10 +14,6 @@ import com.google.mediapipe.tasks.vision.imagesegmenter.ImageSegmenter
 import com.google.mediapipe.tasks.vision.imagesegmenter.ImageSegmenter.ImageSegmenterOptions
 import kotlinx.coroutines.withContext
 
-/**
- * Executes on-device portrait selfie segmentation using official Google MediaPipe ImageSegmenter.
- * Uses the authentic selfie_segmenter.tflite model with native MediaPipe custom op support.
- */
 class PortraitSegmenter(
     private val context: Context,
     private val dispatchers: DispatcherProvider
@@ -29,9 +26,6 @@ class PortraitSegmenter(
 
     private var segmenter: ImageSegmenter? = null
 
-    /**
-     * Generates a 1-channel raw probability mask (values between 0.0 and 1.0) with identical dimensions to [bitmap].
-     */
     suspend fun segmentPortrait(bitmap: Bitmap): Result<FloatArray> = withContext(dispatchers.ml) {
         try {
             val activeSegmenter = getOrInitSegmenter()
@@ -44,15 +38,42 @@ class PortraitSegmenter(
             }
 
             val maskImage = confidenceMasksOpt.get()[0]
+            val maskWidth = maskImage.width
+            val maskHeight = maskImage.height
             val maskBuffer = ByteBufferExtractor.extract(maskImage).asFloatBuffer()
-            val totalPixels = bitmap.width * bitmap.height
-            val maskArray = FloatArray(totalPixels)
-
             maskBuffer.rewind()
-            val copyCount = minOf(maskBuffer.remaining(), totalPixels)
-            maskBuffer.get(maskArray, 0, copyCount)
 
-            Result.Success(maskArray)
+            // 1. Pack MediaPipe confidence mask into a native grayscale Bitmap
+            val intermediatePixels = IntArray(maskWidth * maskHeight)
+            for (i in 0 until (maskWidth * maskHeight)) {
+                val confidence = maskBuffer.get().coerceIn(0.0f, 1.0f)
+                val gray = (confidence * 255f).toInt()
+                intermediatePixels[i] = (0xFF shl 24) or (gray shl 16) or (gray shl 8) or gray
+            }
+
+            val rawMaskBitmap = Bitmap.createBitmap(maskWidth, maskHeight, Bitmap.Config.ARGB_8888)
+            rawMaskBitmap.setPixels(intermediatePixels, 0, maskWidth, 0, 0, maskWidth, maskHeight)
+
+            // 2. Hardware bicubic rescale to match normalized canvas dimensions
+            val targetWidth = bitmap.width
+            val targetHeight = bitmap.height
+            val scaledMaskBitmap = if (maskWidth == targetWidth && maskHeight == targetHeight) {
+                rawMaskBitmap
+            } else {
+                Bitmap.createScaledBitmap(rawMaskBitmap, targetWidth, targetHeight, true)
+            }
+
+            // 3. Extract 2D rescaled float array
+            val totalPixels = targetWidth * targetHeight
+            val rescaledPixels = IntArray(totalPixels)
+            scaledMaskBitmap.getPixels(rescaledPixels, 0, targetWidth, 0, 0, targetWidth, targetHeight)
+
+            val finalMask = FloatArray(totalPixels)
+            for (i in 0 until totalPixels) {
+                finalMask[i] = (rescaledPixels[i] and 0xFF) / 255.0f
+            }
+
+            Result.Success(finalMask)
         } catch (e: Throwable) {
             Log.e(TAG, "Portrait segmentation failed: ${e.message}", e)
             Result.Error(e, "Segmentation failed: ${e.localizedMessage}")

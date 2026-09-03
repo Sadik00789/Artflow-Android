@@ -126,6 +126,7 @@ class AnimeGANGeneratorTF(tf.Module):
         sd = gen.state_dict()
 
         def conv_norm_lrelu_vars(prefix, is_dw=False):
+            # In AnimeGANv2 PyTorch checkpoint: index 0 is ReflectionPad2d, index 1 is Conv2d, index 2 is GroupNorm
             w = sd[f"{prefix}.1.weight"].numpy()
             b = sd[f"{prefix}.1.bias"].numpy() if f"{prefix}.1.bias" in sd else None
             g = sd[f"{prefix}.2.weight"].numpy()

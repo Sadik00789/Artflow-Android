@@ -52,6 +52,9 @@ class ArtFlowApplication : Application() {
         super.onCreate()
         instance = this
 
+        // Clean up any old legacy single-token cache files
+        cacheDir.listFiles()?.filter { it.name.startsWith("artflow_opencl_cache") }?.forEach { it.delete() }
+
         dispatchers = StandardDispatcherProvider()
         assetModelReader = AssetModelReader(this)
         gpuDelegateProvider = GpuDelegateProvider(this)

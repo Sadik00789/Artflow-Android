@@ -79,7 +79,7 @@ class StyleTransferEngine(
 
         Log.d(TAG, "Loading model from assets: $assetPath")
         val modelBuffer = modelReader.loadModelFile(assetPath)
-        val optionsHolder = gpuDelegateProvider.createInterpreterOptions()
+        val optionsHolder = gpuDelegateProvider.createInterpreterOptions(assetPath)
 
         val cachedModel = try {
             val gpuInterpreter = Interpreter(modelBuffer, optionsHolder.options)

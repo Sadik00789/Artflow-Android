@@ -2,11 +2,6 @@ package com.artflow.app.engine.processing
 
 import android.graphics.Bitmap
 
-/**
- * Composites the original photo and the neural stylized output according to:
- * 1. Global artistic intensity (0.0 to 1.0)
- * 2. Subject preservation mask and subject blend factor (0.0 to 1.0)
- */
 object Compositor {
 
     fun composite(
@@ -29,20 +24,20 @@ object Compositor {
 
         val clampedIntensity = intensity.coerceIn(0f, 1f)
         val clampedSubjectBlend = subjectBlend.coerceIn(0f, 1f)
-        val hasValidMask = mask != null && mask.size == totalPixels && clampedSubjectBlend > 0f
+        val hasValidMask = mask != null && mask.size == totalPixels && clampedSubjectBlend > 0.0f
 
         for (i in 0 until totalPixels) {
-            val origColor = origPixels[i]
-            val styleColor = stylePixels[i]
+            val oPixel = origPixels[i]
+            val sPixel = stylePixels[i]
 
-            // If mask exists and subjectBlend > 0, only protect pixels where mask probability > 0.15
             val effectiveStyleWeight = if (hasValidMask) {
                 val maskProb = mask!![i]
                 if (maskProb > 0.15f) {
-                    val subjectRetention = maskProb * clampedSubjectBlend
+                    val normalizedProb = ((maskProb - 0.15f) / 0.85f).coerceIn(0f, 1f)
+                    val subjectRetention = normalizedProb * clampedSubjectBlend
                     clampedIntensity * (1.0f - subjectRetention)
                 } else {
-                    clampedIntensity // Background always receives full style intensity
+                    clampedIntensity
                 }
             } else {
                 clampedIntensity
@@ -50,19 +45,19 @@ object Compositor {
 
             val origWeight = 1.0f - effectiveStyleWeight
 
-            val oR = (origColor shr 16) and 0xFF
-            val oG = (origColor shr 8) and 0xFF
-            val oB = origColor and 0xFF
+            val oR = (oPixel shr 16) and 0xFF
+            val oG = (oPixel shr 8) and 0xFF
+            val oB = oPixel and 0xFF
 
-            val sR = (styleColor shr 16) and 0xFF
-            val sG = (styleColor shr 8) and 0xFF
-            val sB = styleColor and 0xFF
+            val sR = (sPixel shr 16) and 0xFF
+            val sG = (sPixel shr 8) and 0xFF
+            val sB = sPixel and 0xFF
 
-            val outR = (oR * origWeight + sR * effectiveStyleWeight).toInt().coerceIn(0, 255)
-            val outG = (oG * origWeight + sG * effectiveStyleWeight).toInt().coerceIn(0, 255)
-            val outB = (oB * origWeight + sB * effectiveStyleWeight).toInt().coerceIn(0, 255)
+            val r = (oR * origWeight + sR * effectiveStyleWeight).toInt().coerceIn(0, 255)
+            val g = (oG * origWeight + sG * effectiveStyleWeight).toInt().coerceIn(0, 255)
+            val b = (oB * origWeight + sB * effectiveStyleWeight).toInt().coerceIn(0, 255)
 
-            outPixels[i] = (0xFF shl 24) or (outR shl 16) or (outG shl 8) or outB
+            outPixels[i] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
         }
 
         val resultBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
