@@ -17,13 +17,14 @@
 - **Hero Neural Architectures**:
   - **Johnson et al. Fast-Neural-Style (`TransformerNet`)** with residual blocks and instance normalization.
   - **Official AnimeGANv2 (`AnimeGANGenerator`)** with inverted residual blocks, depthwise convolutions, and bilateral upsamplers.
-- **Studio HD Export Pipeline**: 3-stage post-processing pipeline upscaling to $1536\text{px}$ using **FSRCNN 2x Super-Resolution**, high-pass luminance detail injection ($12\%$), and edge-aware thresholded unsharp masking ($|\Delta| > 8$).
-- **Selfie Segmentation & Subject Protection**: Real-time on-device portrait isolation with $2\text{px}$ morphological erosion and $7\text{px}$ box-blur edge feathering.
+- **Studio HD Export Pipeline**: 4-stage post-processing pipeline upscaling to high resolution using **FSRCNN 2x Super-Resolution**, high-pass luminance detail injection ($12\%$), edge-aware thresholded unsharp masking on Luminance $Y$, and high-resolution subject sharpness compositing.
+- **Selfie Segmentation & Subject Protection**: Real-time on-device portrait isolation running on 4 CPU threads with $2\text{px}$ morphological erosion and $7\text{px}$ box-blur edge feathering.
 - **Snapdragon 695 / Adreno 619 Optimization**:
-  - **OpenCL FP16 GPU Delegate** with sustained performance preferences and automatic 4-thread CPU XNNPACK fallback.
-  - **2-Slot LRU Cache (`ModelLruCache`)** with background asynchronous disposal to prevent GPU context exhaustion.
+  - **OpenCL FP16 GPU Delegate with Persistent Disk Shader Caching**: Pre-compiles 240 kernels and caches them to disk (`setSerializationParams`), eliminating 15–30s driver lockups on subsequent runs.
+  - **Static $512\times 512$ Canvas Baseline**: Symmetrically letterbox-padded to reduce compute and memory bandwidth by 55% (~75 GFLOPs vs 180 GFLOPs), achieving $220\text{ms} - 320\text{ms}$ latency without display frame drops.
+  - **Zero-JNI Bulk Native Transfers**: Replaces 3.54M scalar JNI transitions with single bulk native `ByteBuffer` array transfers.
+  - **2-Slot LRU Cache (`ModelLruCache`)**: Strict thread affinity dispatching interpreter teardown on the ML thread to prevent driver crashes.
   - **Zero-Copy Memory Mapping (`mmap`)**: Models stored uncompressed (`stored`) in the APK for immediate `FileChannel` address mapping without heap copies.
-  - **Dynamic Spatial Reshaping**: Inference supports arbitrary portrait and landscape aspect ratios up to the $768\text{px}$ baseline.
 - **Modern Jetpack Compose UI**: Edge-to-edge Material 3 dark theme, 120Hz smooth scrolling carousel, interactive pinch-to-zoom/pan canvas with crossfade transitions, dual intensity and subject isolation sliders, and a multi-stage export HUD.
 
 ---
@@ -33,27 +34,28 @@
 ```mermaid
 flowchart TD
     subgraph InputStage ["1. WYSIWYG Canvas Input"]
-        A[Camera / Gallery Image] --> B[ImageNormalizer: Max 768px Even Dims]
+        A["Camera / Gallery Image"] --> B["ImageNormalizer: Max 512px Even Dims + Symmetric Padding"]
     end
 
     subgraph StudioEngine ["2. Interactive Studio Engine (220-320ms on Adreno 619)"]
-        B --> C[ModelLruCache: 2-Slot GPU LRU]
-        C --> D[GpuDelegateProvider: OpenCL FP16 / 4-Thread XNNPACK]
-        D --> E[StyleTransferEngine: Dynamic Reshaping]
-        B --> F[PortraitSegmenter: Selfie Segmentation]
-        F --> G[MaskProcessor: 2px Erosion + 7px Box Blur]
-        E --> H[Compositor: Dual-Slider Alpha Blending]
+        B --> C["ModelLruCache: 2-Slot GPU LRU"]
+        C --> D["GpuDelegateProvider: OpenCL FP16 + Disk Shader Cache"]
+        D --> E["StyleTransferEngine: Static 512x512 Canvas"]
+        B --> F["PortraitSegmenter: Selfie Segmentation (4-Thread CPU)"]
+        F --> G["MaskProcessor: 2px Erosion + 7px Box Blur"]
+        E --> H["Compositor: Dual-Slider Alpha Blending"]
         G --> H
-        H --> I[ViewportCanvas: CrossfadeLayer & Pinch-Zoom]
+        H --> I["ViewportCanvas: CrossfadeLayer & Pinch-Zoom"]
     end
 
-    subgraph ExportStage ["3. Multi-Stage Studio HD Export (1536px)"]
-        H --> J[Stage 1: FSRCNN 2x Neural Upscaler]
-        A --> K[Original Image High Frequencies]
-        J --> L[Stage 2: YCbCr 12% Luminance Detail Injection]
+    subgraph ExportStage ["3. Multi-Stage Studio HD Export (1024px-1536px)"]
+        H --> J["Stage 1: FSRCNN 2x Neural Upscaler"]
+        A --> K["Original Image High Frequencies"]
+        J --> L["Stage 2: YCbCr 12% Luminance Detail Injection"]
         K --> L
-        L --> M[Stage 3: Edge-Aware Thresholded Unsharp Mask |Δ|>8]
-        M --> N[MediaStoreWriter: Gallery Save + EXIF Metadata]
+        L --> M["Stage 3: Edge-Aware Thresholded Unsharp Mask"]
+        M --> N["Stage 4: Subject Sharpness Preservation Composite"]
+        N --> O["MediaStoreWriter: Gallery Save + EXIF Metadata"]
     end
 ```
 
@@ -113,18 +115,19 @@ Based on Bryan D. Lee / TachibanaYoshino AnimeGANv2 `AnimeGANGenerator` architec
 
 ## Studio HD Export Pipeline
 
-Exporting an artwork runs through an edge-aware 3-stage enhancement pipeline:
+Exporting an artwork runs through an edge-aware 4-stage enhancement pipeline:
 
 1. **Stage 1: FSRCNN 2x Super-Resolution**
-   - The interactive $768\text{px}$ canvas is upscaled $2\times$ to $1536\text{px}$ via neural transposed convolution without bilinear blur.
+   - The interactive $512\text{px}$ canvas is upscaled $2\times$ to $1024\text{px}-1536\text{px}$ via neural transposed convolution without bilinear blur.
 2. **Stage 2: YCbCr Luminance Detail Injection**
    - Extracts high-frequency micro-details from the full-resolution original image.
    - Injects $12\%$ of the original high-pass luminance detail into the $Y$ channel of the upscaled artwork, preserving authentic skin pores, eyelashes, and textural boundaries.
 3. **Stage 3: Edge-Aware Thresholded Unsharp Mask**
-   - Computes a Gaussian unsharp mask on the luminance channel.
+   - Computes an edge-aware unsharp mask strictly on the Luminance ($Y$) channel in YCbCr space to prevent chromatic fringing.
    - Applies sharpening only where luminance delta satisfies $|\Delta| > 8$ to avoid amplifying flat-color noise.
    - Clamps correction magnitude to $\pm 12$ intensity units to eliminate ringing halos.
-4. **MediaStore Export with EXIF Tags**
+4. **Stage 4: Subject Sharpness Preservation & MediaStore Export**
+   - If the subject isolation slider is active, upscales the portrait alpha mask and seamlessly composites the original high-resolution subject over the stylized background.
    - Writes directly to Android `Pictures/ArtFlow` with injected EXIF metadata (`Artist: ArtFlow On-Device Studio`, `ImageDescription: Style Preset Name`).
 
 ---
@@ -229,8 +232,8 @@ python3 tools/verify_tflite.py
 ArtFlow is engineered specifically for mid-range mobile silicon:
 - **Baseline SoC**: Qualcomm Snapdragon 695 5G (SM6375).
 - **GPU**: Qualcomm Adreno 619.
-- **Target Frame Latency**: $220\text{ms} - 320\text{ms}$ interactive preview on $768\text{px}$ canvas.
-- **Memory Overhead**: Peak RAM $< 380\text{MB}$ during interactive studio session, $< 650\text{MB}$ during $1536\text{px}$ multi-stage HD export.
+- **Target Frame Latency**: $220\text{ms} - 320\text{ms}$ interactive preview on $512\text{px}$ canvas.
+- **Memory Overhead**: Peak RAM $< 380\text{MB}$ during interactive studio session, $< 650\text{MB}$ during multi-stage HD export.
 
 ---
 
