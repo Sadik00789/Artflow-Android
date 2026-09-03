@@ -11,6 +11,7 @@ import com.artflow.app.engine.ModelLruCache
 import com.artflow.app.engine.StyleTransferEngine
 import com.artflow.app.model.StyleCatalog
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,8 +28,8 @@ class AdrenoBenchmarkTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val dispatchers = StandardDispatcherProvider()
         val reader = AssetModelReader(context)
-        val gpuProvider = GpuDelegateProvider()
-        val lruCache = ModelLruCache(capacity = 2)
+        val gpuProvider = GpuDelegateProvider(context)
+        val lruCache = ModelLruCache(capacity = 2, dispatchers = dispatchers)
         val tensorHandler = DynamicTensorHandler()
 
         val engine = StyleTransferEngine(
@@ -64,4 +65,24 @@ class AdrenoBenchmarkTest {
         // Assert average execution finishes within reasonable budget
         assertTrue("Inference must finish under 1000ms", avgDurationMs < 1000)
     }
+
+    @Test
+    fun testPortraitSegmenter() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val dispatchers = StandardDispatcherProvider()
+        val bitmap = Bitmap.createBitmap(512, 512, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+        val paint = android.graphics.Paint().apply { color = android.graphics.Color.rgb(220, 180, 140) }
+        canvas.drawCircle(256f, 256f, 150f, paint)
+        val normalized = com.artflow.app.engine.processing.ImageNormalizer.normalizeCanvas(bitmap)
+        val segmenter = com.artflow.app.engine.segmentation.PortraitSegmenter(context, dispatchers)
+        val result = segmenter.segmentPortrait(normalized)
+        assertTrue("segmentPortrait must succeed", result.isSuccess)
+    }
 }
+
+
+
+
+
+

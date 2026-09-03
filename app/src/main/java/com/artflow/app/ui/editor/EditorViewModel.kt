@@ -88,6 +88,8 @@ class EditorViewModel(
                 if (currentStylizedBitmap != null && _uiState.value is EditorUiState.Success) {
                     recomposite()
                 }
+            } else if (segResult is Result.Error) {
+                Log.e(TAG, "Portrait segmentation failed: ${segResult.message}", segResult.exception)
             }
         }
 
