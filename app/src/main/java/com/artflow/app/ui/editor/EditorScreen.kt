@@ -65,6 +65,7 @@ fun EditorScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val settings by viewModel.settings.collectAsState()
+    val hasMask by viewModel.hasSegmentationMask.collectAsState()
     val context = LocalContext.current
 
     // Handle export success notification
@@ -142,9 +143,6 @@ fun EditorScreen(
                         )
                         .padding(bottom = 12.dp)
                 ) {
-                    val currentSuccess = uiState as? EditorUiState.Success
-                    val hasMask = currentSuccess?.segmentationMask != null
-
                     // Dual Sliders for Intensity & Subject Preserve
                     BlendSliderBar(
                         settings = settings,

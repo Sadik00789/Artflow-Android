@@ -46,6 +46,9 @@ class EditorViewModel(
     private val _settings = MutableStateFlow(EditorSettings())
     val settings: StateFlow<EditorSettings> = _settings.asStateFlow()
 
+    private val _hasSegmentationMask = MutableStateFlow(false)
+    val hasSegmentationMask: StateFlow<Boolean> = _hasSegmentationMask.asStateFlow()
+
     // Active in-flight coroutine jobs for cancellation
     private var activeInferenceJob: Job? = null
     private var recompositeJob: Job? = null
@@ -69,6 +72,7 @@ class EditorViewModel(
         val normalized = ImageNormalizer.normalizeCanvas(bitmap)
         normalizedCanvas = normalized
         segmentationMask = null
+        _hasSegmentationMask.value = false
         currentStylizedBitmap = null
         _settings.value = EditorSettings(intensity = 0.5f, subjectBlend = 0.5f)
 
@@ -82,10 +86,11 @@ class EditorViewModel(
                     height = normalized.height
                 )
                 segmentationMask = refinedMask
+                _hasSegmentationMask.value = true
                 Log.d(TAG, "Portrait segmentation and feathering completed.")
 
                 // If style is already rendered, re-composite with the new mask
-                if (currentStylizedBitmap != null && _uiState.value is EditorUiState.Success) {
+                if (currentStylizedBitmap != null) {
                     recomposite()
                 }
             } else if (segResult is Result.Error) {
@@ -225,6 +230,7 @@ class EditorViewModel(
         originalPhoto = null
         normalizedCanvas = null
         segmentationMask = null
+        _hasSegmentationMask.value = false
         currentStylizedBitmap = null
         _settings.value = EditorSettings(intensity = 0.5f, subjectBlend = 0.5f)
         _uiState.value = EditorUiState.Idle

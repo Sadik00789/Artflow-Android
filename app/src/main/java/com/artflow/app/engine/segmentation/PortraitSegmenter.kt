@@ -26,7 +26,7 @@ class PortraitSegmenter(
 
     private var segmenter: ImageSegmenter? = null
 
-    suspend fun segmentPortrait(bitmap: Bitmap): Result<FloatArray> = withContext(dispatchers.ml) {
+    suspend fun segmentPortrait(bitmap: Bitmap): Result<FloatArray> = withContext(dispatchers.default) {
         try {
             val activeSegmenter = getOrInitSegmenter()
             val mpImage = BitmapImageBuilder(bitmap).build()
