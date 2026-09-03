@@ -41,6 +41,8 @@ def download_file_with_retry(url: str, dest_path: str, max_retries: int = 4):
                 time.sleep(2 * attempt)
     return False
 
+MEDIAPIPE_SELFIE_URL = "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite"
+
 def main():
     base_dir = "tools/checkpoints"
     anime_dir = os.path.join(base_dir, "anime")
@@ -78,6 +80,14 @@ def main():
 
         shutil.rmtree(extract_tmp, ignore_errors=True)
         print(f"Extracted models: {found_models}")
+
+    print("\n=== 3. Downloading Official Google MediaPipe Selfie Segmenter (FP16) ===")
+    media_pipe_dest = "app/src/main/assets/models/vision/selfie_segmenter.tflite"
+    success = download_file_with_retry(MEDIAPIPE_SELFIE_URL, media_pipe_dest)
+    if success:
+        print(f"Official MediaPipe Selfie Segmenter downloaded to {media_pipe_dest}")
+    else:
+        print(f"Warning: Could not download MediaPipe Selfie Segmenter from {MEDIAPIPE_SELFIE_URL}")
 
     print("\nCheckpoints download process complete.")
 

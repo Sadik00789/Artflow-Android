@@ -1,0 +1,30 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+    <!-- Frame background: Pure Black Obsidian -->
+    <path
+        android:fillColor="#111116"
+        android:pathData="M12,8h72a8,8 0,0 1,8 8v64a8,8 0,0 1,-8 8H12a8,8 0,0 1,-8 -8V16a8,8 0,0 1,8 -8z" />
+    <!-- Bauhaus Inner Block -->
+    <path
+        android:fillColor="#1B2430"
+        android:pathData="M20,16h56a4,4 0,0 1,4 4v56a4,4 0,0 1,-4 4H20a4,4 0,0 1,-4 -4V20a4,4 0,0 1,4 -4z" />
+    <!-- Sharp Graphic Triangle: Synthwave Orange/Red -->
+    <path
+        android:fillColor="#FF5722"
+        android:pathData="M48,22 L72,66 L24,66 Z" />
+    <!-- Overlapping Graphic Circle: Electric Cyan -->
+    <path
+        android:fillColor="#00E5FF"
+        android:pathData="M56,48 a16,16 0 1 0 0.1,0" />
+    <!-- Geometric Center Diamond: Acid Yellow -->
+    <path
+        android:fillColor="#FFE600"
+        android:pathData="M48,40 L56,48 L48,56 L40,48 Z" />
+    <!-- Striped Graphic Bar -->
+    <path
+        android:fillColor="#E040FB"
+        android:pathData="M24,70 h48 v4 H24 Z" />
+</vector>

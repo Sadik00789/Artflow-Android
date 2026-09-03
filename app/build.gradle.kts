@@ -102,6 +102,9 @@ dependencies {
     // Image loading
     implementation(libs.coil.compose)
 
+    // MediaPipe Tasks Vision for Selfie Segmentation
+    implementation("com.google.mediapipe:tasks-vision:0.10.14")
+
     // Unit Testing
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

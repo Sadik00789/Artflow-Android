@@ -1,0 +1,30 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+    <!-- Frame background: Midnight Tokyo Blue -->
+    <path
+        android:fillColor="#0D1B2A"
+        android:pathData="M12,8h72a8,8 0,0 1,8 8v64a8,8 0,0 1,-8 8H12a8,8 0,0 1,-8 -8V16a8,8 0,0 1,8 -8z" />
+    <!-- Gradient/Backdrop: Neon Magenta & Sakura -->
+    <path
+        android:fillColor="#4A0E4E"
+        android:pathData="M20,16h56a4,4 0,0 1,4 4v56a4,4 0,0 1,-4 4H20a4,4 0,0 1,-4 -4V20a4,4 0,0 1,4 -4z" />
+    <!-- Anime Hero Sparkle (4-point star) -->
+    <path
+        android:fillColor="#FF70A6"
+        android:pathData="M48,22 C48,34 50,46 64,48 C50,50 48,62 48,74 C48,62 46,50 32,48 C46,46 48,34 48,22 Z" />
+    <!-- Center Core Glow: Bright Cyan -->
+    <path
+        android:fillColor="#70D6FF"
+        android:pathData="M48,36 C48,42 49,47 56,48 C49,49 48,54 48,60 C48,54 47,49 40,48 C47,47 48,42 48,36 Z" />
+    <!-- Small Anime Glint Top-Left -->
+    <path
+        android:fillColor="#FFD670"
+        android:pathData="M30,26 C30,30 31,33 35,34 C31,35 30,38 30,42 C30,38 29,35 25,34 C29,33 30,30 30,26 Z" />
+    <!-- Small Anime Glint Bottom-Right -->
+    <path
+        android:fillColor="#E9FF70"
+        android:pathData="M66,54 C66,58 67,61 71,62 C67,63 66,66 66,70 C66,66 65,63 61,62 C65,61 66,58 66,54 Z" />
+</vector>

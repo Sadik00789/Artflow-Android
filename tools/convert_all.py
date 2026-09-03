@@ -60,6 +60,30 @@ HERO_ANIME_MAP = {
     "dark_fantasy_berserk": "tools/checkpoints/anime/celeba_distill.pt"
 }
 
+HERO_GRAPHIC_MAP = {
+    # High-contrast line art & printmaking -> udnie.pth / mosaic.pth
+    "charcoal_sketch": "tools/checkpoints/fine_art/udnie.pth",
+    "comic_halftone": "tools/checkpoints/fine_art/mosaic.pth",
+    "linocut_print": "tools/checkpoints/fine_art/udnie.pth",
+    "blueprint_cyanotype": "tools/checkpoints/fine_art/mosaic.pth",
+    "bauhaus_geometry": "tools/checkpoints/fine_art/mosaic.pth",
+    "cyber_glitch": "tools/checkpoints/fine_art/udnie.pth",
+    "swiss_typographic": "tools/checkpoints/fine_art/udnie.pth",
+
+    # Vibrant pop, synthwave & posterization -> candy.pth
+    "pop_art_warhol": "tools/checkpoints/fine_art/candy.pth",
+    "synthwave_neon": "tools/checkpoints/fine_art/candy.pth",
+    "psychedelic_60s": "tools/checkpoints/fine_art/candy.pth",
+    "art_deco_gold": "tools/checkpoints/fine_art/candy.pth",
+    "holographic_iridescent": "tools/checkpoints/fine_art/candy.pth",
+
+    # Cel-shaded vector & woodblock -> face_paint_512_v1.pt
+    "woodblock_ukiyoe": "tools/checkpoints/anime/face_paint_512_v1.pt",
+    "vector_flat": "tools/checkpoints/anime/face_paint_512_v1.pt",
+    "stencil_street_art": "tools/checkpoints/anime/face_paint_512_v1.pt",
+    "risograph_print": "tools/checkpoints/anime/face_paint_512_v1.pt",
+}
+
 class FallbackUnifiedStyleTFModule(tf.Module):
     """
     Fallback generator module for graphic styles without pre-trained checkpoints.
@@ -196,9 +220,23 @@ def main():
     # 3. Graphic Styles (16 models)
     print("\n--- Converting 16 Graphic Models ---")
     for idx, style_id in enumerate(GRAPHIC_STYLES):
+        ckpt_path = HERO_GRAPHIC_MAP.get(style_id)
         out_path = os.path.join(assets_dir, f"graphic/{style_id}.tflite")
-        module = FallbackUnifiedStyleTFModule(model_type="graphic", seed=200 + idx)
-        convert_to_tflite_fp16(module, out_path)
+        if ckpt_path and os.path.exists(ckpt_path):
+            print(f"Using Hero Checkpoint {ckpt_path} for Graphic {style_id}...")
+            if ckpt_path.endswith(".pth"):
+                if ckpt_path not in fine_art_cache:
+                    fine_art_cache[ckpt_path] = TransformerNetTF(ckpt_path)
+                module = fine_art_cache[ckpt_path]
+            else:
+                if ckpt_path not in anime_cache:
+                    anime_cache[ckpt_path] = AnimeGANGeneratorTF(ckpt_path)
+                module = anime_cache[ckpt_path]
+            convert_to_tflite_fp16(module, out_path)
+        else:
+            print(f"Using fallback generator for {style_id}...")
+            module = FallbackUnifiedStyleTFModule(model_type="graphic", seed=200 + idx)
+            convert_to_tflite_fp16(module, out_path)
 
     # 4. Vision Models (2 models: FSRCNN + Selfie Segmenter)
     print("\n--- Converting Vision Models ---")
@@ -206,7 +244,10 @@ def main():
     convert_to_tflite_fp16(FSRCNNTFModule(), fsrcnn_path)
 
     segmenter_path = os.path.join(assets_dir, "vision/selfie_segmenter.tflite")
-    convert_to_tflite_fp16(SelfieSegmenterTFModule(), segmenter_path)
+    if os.path.exists(segmenter_path) and os.path.getsize(segmenter_path) > 50000:
+        print(f"Preserving official MediaPipe Selfie Segmenter model at {segmenter_path} ({os.path.getsize(segmenter_path)} bytes)")
+    else:
+        convert_to_tflite_fp16(SelfieSegmenterTFModule(), segmenter_path)
 
     print("\nBatch conversion of all 52 models completed successfully.")
 

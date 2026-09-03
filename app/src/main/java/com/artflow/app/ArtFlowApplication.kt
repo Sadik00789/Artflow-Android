@@ -67,8 +67,7 @@ class ArtFlowApplication : Application() {
         )
 
         portraitSegmenter = PortraitSegmenter(
-            modelReader = assetModelReader,
-            tensorHandler = tensorHandler,
+            context = this,
             dispatchers = dispatchers
         )
 

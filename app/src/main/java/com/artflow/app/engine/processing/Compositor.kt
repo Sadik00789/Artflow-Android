@@ -9,15 +9,6 @@ import android.graphics.Bitmap
  */
 object Compositor {
 
-    /**
-     * Blends [original] and [stylized] bitmaps pixel-by-pixel.
-     *
-     * @param original Source photo (canvas resolution)
-     * @param stylized Neural styled output (same resolution)
-     * @param mask Refined segmentation alpha mask where 1.0 = subject, 0.0 = background (optional)
-     * @param intensity Global style intensity (0.0 = original, 1.0 = full style)
-     * @param subjectBlend Degree to which the subject is preserved original (0.0 = all stylized, 1.0 = subject intact)
-     */
     fun composite(
         original: Bitmap,
         stylized: Bitmap,
@@ -38,16 +29,21 @@ object Compositor {
 
         val clampedIntensity = intensity.coerceIn(0f, 1f)
         val clampedSubjectBlend = subjectBlend.coerceIn(0f, 1f)
-        val hasMask = mask != null && mask.size == totalPixels && clampedSubjectBlend > 0f
+        val hasValidMask = mask != null && mask.size == totalPixels && clampedSubjectBlend > 0f
 
         for (i in 0 until totalPixels) {
             val origColor = origPixels[i]
             val styleColor = stylePixels[i]
 
-            // Calculate effective style weight
-            val effectiveStyleWeight = if (hasMask) {
-                val subjectRetention = mask!![i] * clampedSubjectBlend
-                clampedIntensity * (1.0f - subjectRetention)
+            // If mask exists and subjectBlend > 0, only protect pixels where mask probability > 0.15
+            val effectiveStyleWeight = if (hasValidMask) {
+                val maskProb = mask!![i]
+                if (maskProb > 0.15f) {
+                    val subjectRetention = maskProb * clampedSubjectBlend
+                    clampedIntensity * (1.0f - subjectRetention)
+                } else {
+                    clampedIntensity // Background always receives full style intensity
+                }
             } else {
                 clampedIntensity
             }.coerceIn(0f, 1f)

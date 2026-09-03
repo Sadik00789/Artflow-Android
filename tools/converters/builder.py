@@ -241,11 +241,8 @@ class AnimeGANGeneratorTF(tf.Module):
         # Normalize [0.0, 255.0] to [-1.0, 1.0]
         x_norm = (x / 127.5) - 1.0
 
-        # RGB to BGR channel reversal as AnimeGANv2 expects BGR
-        x_bgr = tf.reverse(x_norm, axis=[-1])
-
-        # block_a
-        y = self._conv_norm_lrelu(x_bgr, self.ba0, pad_val=3, stride=1)
+        # block_a (native RGB input)
+        y = self._conv_norm_lrelu(x_norm, self.ba0, pad_val=3, stride=1)
         # padding=(0, 1, 0, 1) in PyTorch is: left=0, right=1, top=0, bottom=1
         y = self._conv_norm_lrelu(y, self.ba1, pad_val=(0, 1, 0, 1), stride=2)
         y = self._conv_norm_lrelu(y, self.ba2, pad_val=1, stride=1)
@@ -277,10 +274,7 @@ class AnimeGANGeneratorTF(tf.Module):
         y = tf.nn.conv2d(y, self.w_out, strides=[1, 1, 1, 1], padding="VALID")
         y = tf.tanh(y)
 
-        # Reverse back from BGR to RGB
-        y = tf.reverse(y, axis=[-1])
-
-        # Scale from [-1.0, 1.0] to [0.0, 255.0]
+        # Scale from [-1.0, 1.0] to [0.0, 255.0] (native RGB output)
         y = (y + 1.0) * 127.5
 
         return tf.clip_by_value(y, 0.0, 255.0, name="output")

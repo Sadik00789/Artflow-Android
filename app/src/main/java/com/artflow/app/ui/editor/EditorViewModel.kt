@@ -71,6 +71,7 @@ class EditorViewModel(
         normalizedCanvas = normalized
         segmentationMask = null
         currentStylizedBitmap = null
+        _settings.value = EditorSettings(intensity = 1.0f, subjectBlend = 0.0f)
 
         // Trigger asynchronous portrait segmentation in parallel
         viewModelScope.launch(dispatchers.default) {
