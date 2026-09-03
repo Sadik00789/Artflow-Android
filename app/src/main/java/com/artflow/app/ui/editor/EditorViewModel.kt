@@ -70,7 +70,7 @@ class EditorViewModel(
         normalizedCanvas = normalized
         segmentationMask = null
         currentStylizedBitmap = null
-        _settings.value = EditorSettings(intensity = 1.0f, subjectBlend = 0.0f)
+        _settings.value = EditorSettings(intensity = 0.5f, subjectBlend = 0.5f)
 
         // Trigger asynchronous portrait segmentation in parallel
         viewModelScope.launch(dispatchers.default) {
@@ -102,11 +102,6 @@ class EditorViewModel(
     fun selectStyle(preset: StylePreset) {
         val canvas = normalizedCanvas ?: return
         currentStyle = preset
-
-        // If switching to Anime or Graphic, reset Subject Preserve to 0 so the face transforms
-        if (preset.category == StyleCategory.ANIME || preset.category == StyleCategory.GRAPHIC) {
-            _settings.value = _settings.value.copy(subjectBlend = 0.0f)
-        }
 
         // CANCEL any active in-flight inference job immediately
         activeInferenceJob?.cancel(CancellationException("User switched to style: ${preset.name}"))
@@ -229,7 +224,7 @@ class EditorViewModel(
         normalizedCanvas = null
         segmentationMask = null
         currentStylizedBitmap = null
-        _settings.value = EditorSettings()
+        _settings.value = EditorSettings(intensity = 0.5f, subjectBlend = 0.5f)
         _uiState.value = EditorUiState.Idle
     }
 }

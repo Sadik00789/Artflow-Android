@@ -6,6 +6,6 @@ package com.artflow.app.model
  * @param subjectBlend Segmentation-based mask blend (0.0f = style entire image, 1.0f = keep subject untouched)
  */
 data class EditorSettings(
-    val intensity: Float = 1.0f,
-    val subjectBlend: Float = 0.0f
+    val intensity: Float = 0.5f,
+    val subjectBlend: Float = 0.5f
 )
