@@ -286,7 +286,7 @@ private fun EmptyCanvasPlaceholder(onPickImage: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "50 Neural Styles • Snapdragon 695 Adreno 619 • Sub-300ms",
+            text = "50 Neural Styles • 1024px Studio Canvas • Universal GPU Acceleration",
             fontSize = 12.sp,
             color = TextMuted
         )
