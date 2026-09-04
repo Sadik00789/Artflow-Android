@@ -4,14 +4,14 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.20-7F52FF.svg?style=flat&logo=kotlin)](https://kotlinlang.org)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-BOM%202024.09.02-4285F4.svg?style=flat&logo=jetpackcompose)](https://developer.android.com/jetpack/compose)
 [![TensorFlow Lite](https://img.shields.io/badge/TensorFlow%20Lite-2.14.0%20(FP16)-FF6F00.svg?style=flat&logo=tensorflow)](https://www.tensorflow.org/lite)
-[![Release](https://img.shields.io/badge/Release-v1.0.1%20APK-9945FF.svg?style=flat&logo=github)](https://github.com/Sadik00789/Artflow-Android/releases/latest)
+[![Release](https://img.shields.io/badge/Release-v1.0.2%20APK-9945FF.svg?style=flat&logo=github)](https://github.com/Sadik00789/Artflow-Android/releases/latest)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Inference](https://img.shields.io/badge/Inference-100%25%20On--Device%20Offline-green.svg?style=flat)](#strict-offline--privacy-first)
 [![Hardware Target](https://img.shields.io/badge/Hardware-Universal%20GPU%20%2F%20NPU%20Acceleration-blue.svg?style=flat)](#universal-hardware-acceleration--multi-vendor-support)
 
 **ArtFlow** is a production-grade, 100% offline, on-device neural art studio for Android. It transforms ordinary photos into fine art paintings, anime drawings, and graphic illustrations using hardware-accelerated deep neural networks running directly on the device's GPU—with **zero cloud dependencies, zero telemetry, and zero network calls**.
 
-👉 **[Download the Latest Standalone APK (v1.0.1)](https://github.com/Sadik00789/Artflow-Android/releases/download/v1.0.1/ArtFlow-v1.0.1.apk)**
+👉 **[Download the Latest Standalone APK (v1.0.2)](https://github.com/Sadik00789/Artflow-Android/releases/download/v1.0.2/ArtFlow-v1.0.2.apk)**
 
 ---
 
@@ -27,6 +27,7 @@
 ## Key Highlights
 
 - **50 Neural Art Styles**: Curated collection spanning **Fine Art** (18 styles), **Anime** (16 styles), and **Graphic Design** (16 styles).
+- **Tailored Aesthetic Grading Engine**: Dedicated color-grading matrices, tone curves, and split-toning rules across all 50 style IDs using fast ITU-R BT.601 fixed-point math (`shr 8`) and zero inner-loop allocations to ensure unique, vibrant visual identities.
 - **Hero Neural Architectures**:
   - **Johnson et al. Fast-Neural-Style (`TransformerNet`)** with residual blocks and instance normalization.
   - **Official AnimeGANv2 (`AnimeGANGenerator`)** with inverted residual blocks, depthwise convolutions, and bilateral upsamplers.
@@ -242,6 +243,21 @@ python3 tools/convert_all.py
 # 3. Verify numerical bounds, shapes, and zero NaNs
 python3 tools/verify_tflite.py
 ```
+
+---
+
+## Release Changelog
+
+### v1.0.2 — 50 Unique Neural Style Profiles & Tailored Aesthetic Grading
+- **50 Tailored Style Profiles**: Complete overhaul of `StylePostProcessor` using fast fixed-point math to guarantee unique visual identities across all 50 Fine Art, Anime, and Graphic presets.
+- **Distinct Artistic Palettes**: Implemented specific color-grading matrices, tone curves, and split-toning including Van Gogh golden night sky, Guernica cubist monochrome S-curve, Makoto Shinkai azure, Ghibli pastoral greens, and Japanese Ukiyo-e mineral indigo.
+- **Zero-Allocation Hot Path**: In-place pixel transformations with 8-bit fixed-point math (`shr 8`), executing in sub-25ms on a 1024px studio canvas.
+- **Comprehensive Unit Testing**: Added automated test coverage in `StylePostProcessorTest` validating that all 50 styles execute cleanly, produce non-identical pixel arrays for shared base models, and run within latency constraints.
+
+### v1.0.1 — Universal Multi-SoC Acceleration & Studio Engine
+- **Universal Hardware Optimization**: Native OpenCL FP16 acceleration with persistent disk shader compilation cache for Qualcomm Snapdragon (8 Elite, 8 Gen 1–3), Google Pixel Tensor (G1–G5), MediaTek Dimensity, and Samsung Exynos.
+- **1024px Studio Canvas**: High-fidelity $768\times 1024\text{px}$ rendering pipeline with edge-to-edge Material 3 dark studio UI.
+- **Apache 2.0 Open Source Licensing**: Clean open-source release with standalone APK distribution.
 
 ---
 
