@@ -11,6 +11,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -18,12 +19,20 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Unit tests verifying that all 50 style presets in [StyleCatalog] execute cleanly
- * via [StylePostProcessor.applyAestheticGrading], produce visually distinct pixel signatures
- * across shared base neural models, and meet the <50ms processing latency requirement.
+ * via [StylePostProcessor.applyAestheticGrading].
+ * - Natural Fine Art and Anime styles pass through untouched to protect authentic neural palettes and skin tones.
+ * - Graphic print styles (Warhol, Blueprint, Charcoal, Swiss, etc.) apply dedicated palette transformations.
+ * - Processing latency strictly stays <50ms.
  */
 class StylePostProcessorTest {
 
     private val bitmapPixelStorage = ConcurrentHashMap<Bitmap, IntArray>()
+
+    private val graphicGradedStyleIds = setOf(
+        "blueprint_cyanotype", "pop_art_warhol", "charcoal_sketch",
+        "manga_ink_wash", "linocut_print", "swiss_typographic",
+        "synthwave_neon", "cyber_glitch"
+    )
 
     @Before
     fun setUp() {
@@ -78,64 +87,53 @@ class StylePostProcessorTest {
     }
 
     @Test
-    fun testAll50StylesExecuteWithoutException() {
+    fun testAll50StylesExecuteWithoutExceptionAndPreserveNeuralStyles() {
         val allStyles = StyleCatalog.allStyles
         assertEquals("Catalog must contain exactly 50 styles", 50, allStyles.size)
 
-        val testWidth = 256
-        val testHeight = 256
-        val testPixels = generateGradientPixels(testWidth, testHeight)
-
-        for (style in allStyles) {
-            val srcBitmap = createMockBitmap(testWidth, testHeight, testPixels)
-            val gradedBitmap = StylePostProcessor.applyAestheticGrading(srcBitmap, style.id)
-
-            assertNotNull("Graded bitmap for ${style.id} must not be null", gradedBitmap)
-            val outputPixels = bitmapPixelStorage[gradedBitmap]
-            assertNotNull("Output pixel buffer for ${style.id} must be populated", outputPixels)
-            assertEquals("Output buffer size must match canvas", testWidth * testHeight, outputPixels!!.size)
-        }
-    }
-
-    @Test
-    fun testSharedBaseModelsProduceDistinctPixelSignatures() {
         val testWidth = 128
         val testHeight = 128
         val testPixels = generateGradientPixels(testWidth, testHeight)
 
-        // Pairs of styles sharing identical underlying model weights
-        val sharedModelPairs = listOf(
-            // mosaic.pth
-            "starry_night" to "guernica",
-            "starry_night" to "cezanne_mont_sainte_victoire",
-            "guernica" to "seurat_la_grande_jatte",
-            // udnie.pth
-            "the_scream" to "great_wave",
-            "the_scream" to "hokusai_red_fuji",
-            "great_wave" to "munch_madonna",
-            // candy.pth
-            "kandinsky_composition" to "klimt_the_kiss",
-            "klimt_the_kiss" to "van_gogh_sunflowers",
-            "matisse_dance" to "gauguin_tahitian_women",
-            // rain_princess.pth
-            "monet_water_lilies" to "turner_rain_steam_speed",
-            "degas_ballet" to "renoir_boating_party",
-            // paprika.pt
-            "ghibli_pastoral" to "manga_ink_wash",
-            "lofi_chill" to "fantasy_isekai",
-            // face_paint_512_v1.pt
-            "shinkai_sky" to "cyberpunk_neo_tokyo",
-            "shinkai_sky" to "mecha_cel_shade",
-            "cyberpunk_neo_tokyo" to "trigger_action",
-            // face_paint_512_v2.pt
-            "kyoto_bloom" to "ufotable_digital",
-            "chibi_pastel" to "shoujo_sparkle",
-            // celeba_distill.pt
-            "retro_80s_anime" to "dark_fantasy_berserk",
-            "vaporwave_sunset" to "city_pop_1984"
+        for (style in allStyles) {
+            val srcBitmap = createMockBitmap(testWidth, testHeight, testPixels)
+            val outputBitmap = StylePostProcessor.applyAestheticGrading(srcBitmap, style.id)
+
+            assertNotNull("Output bitmap for ${style.id} must not be null", outputBitmap)
+
+            if (style.id !in graphicGradedStyleIds) {
+                // Natural Fine Art & Anime styles must pass through untouched
+                assertSame(
+                    "Style '${style.id}' should pass through untouched without color contamination",
+                    srcBitmap,
+                    outputBitmap
+                )
+            } else {
+                // Graphic styles receive aesthetic re-mapping
+                val outputPixels = bitmapPixelStorage[outputBitmap]
+                assertNotNull("Output pixel buffer for ${style.id} must be populated", outputPixels)
+                assertFalse(
+                    "Graphic style '${style.id}' should modify pixel buffer",
+                    testPixels.contentEquals(outputPixels)
+                )
+            }
+        }
+    }
+
+    @Test
+    fun testGraphicStylesProduceDistinctSignatures() {
+        val testWidth = 128
+        val testHeight = 128
+        val testPixels = generateGradientPixels(testWidth, testHeight)
+
+        val graphicPairs = listOf(
+            "blueprint_cyanotype" to "pop_art_warhol",
+            "pop_art_warhol" to "charcoal_sketch",
+            "swiss_typographic" to "synthwave_neon",
+            "manga_ink_wash" to "synthwave_neon"
         )
 
-        for ((styleA, styleB) in sharedModelPairs) {
+        for ((styleA, styleB) in graphicPairs) {
             val srcA = createMockBitmap(testWidth, testHeight, testPixels)
             val gradedA = StylePostProcessor.applyAestheticGrading(srcA, styleA)
             val pixelsA = bitmapPixelStorage[gradedA]!!
@@ -145,7 +143,7 @@ class StylePostProcessorTest {
             val pixelsB = bitmapPixelStorage[gradedB]!!
 
             assertFalse(
-                "Styles '$styleA' and '$styleB' share base model weights but must produce distinct graded pixels",
+                "Graphic styles '$styleA' and '$styleB' must produce distinct graded pixels",
                 pixelsA.contentEquals(pixelsB)
             )
         }

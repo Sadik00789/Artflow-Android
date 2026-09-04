@@ -27,7 +27,7 @@
 ## Key Highlights
 
 - **50 Neural Art Styles**: Curated collection spanning **Fine Art** (18 styles), **Anime** (16 styles), and **Graphic Design** (16 styles).
-- **Tailored Aesthetic Grading Engine**: Dedicated color-grading matrices, tone curves, and split-toning rules across all 50 style IDs using fast ITU-R BT.601 fixed-point math (`shr 8`) and zero inner-loop allocations to ensure unique, vibrant visual identities.
+- **Authentic Neural Palettes & Tailored Graphic Grading**: Pre-trained neural networks (AnimeGANv2 and TransformerNet) render with their authentic color balance and pristine skin tones, while Graphic print styles (Warhol posterization, Cyanotype, Manga screentone, Swiss typography) feature tailored fast fixed-point (`shr 8`) palette transformations.
 - **Hero Neural Architectures**:
   - **Johnson et al. Fast-Neural-Style (`TransformerNet`)** with residual blocks and instance normalization.
   - **Official AnimeGANv2 (`AnimeGANGenerator`)** with inverted residual blocks, depthwise convolutions, and bilateral upsamplers.
@@ -248,11 +248,11 @@ python3 tools/verify_tflite.py
 
 ## Release Changelog
 
-### v1.0.2 — 50 Unique Neural Style Profiles & Tailored Aesthetic Grading
-- **50 Tailored Style Profiles**: Complete overhaul of `StylePostProcessor` using fast fixed-point math to guarantee unique visual identities across all 50 Fine Art, Anime, and Graphic presets.
-- **Distinct Artistic Palettes**: Implemented specific color-grading matrices, tone curves, and split-toning including Van Gogh golden night sky, Guernica cubist monochrome S-curve, Makoto Shinkai azure, Ghibli pastoral greens, and Japanese Ukiyo-e mineral indigo.
-- **Zero-Allocation Hot Path**: In-place pixel transformations with 8-bit fixed-point math (`shr 8`), executing in sub-25ms on a 1024px studio canvas.
-- **Comprehensive Unit Testing**: Added automated test coverage in `StylePostProcessorTest` validating that all 50 styles execute cleanly, produce non-identical pixel arrays for shared base models, and run within latency constraints.
+### v1.0.2 — Authentic Neural Palettes & Tailored Graphic Grading
+- **Natural Neural Balance**: Restored authentic pre-trained color balance for Fine Art and Anime models, eliminating global RGB offsets to preserve natural skin tones, facial contours, and clean neutral whites.
+- **Tailored Graphic Print Grading**: Dedicated fast fixed-point post-processing for Graphic styles requiring artificial palette re-mapping (Warhol 4-tone posterization, Cyanotype Prussian blue, Manga screentone S-curves, Swiss typography, and Synthwave/Glitch split-toning).
+- **Zero-Allocation Hot Path**: Fast ITU-R BT.601 integer fixed-point math (`shr 8`) and in-place buffer mutation executing in sub-25ms.
+- **Comprehensive Unit Testing**: Automated test coverage in `StylePostProcessorTest` validating that all 50 styles execute cleanly, neural styles pass through untouched, and graphic styles apply verified palette transformations.
 
 ### v1.0.1 — Universal Multi-SoC Acceleration & Studio Engine
 - **Universal Hardware Optimization**: Native OpenCL FP16 acceleration with persistent disk shader compilation cache for Qualcomm Snapdragon (8 Elite, 8 Gen 1–3), Google Pixel Tensor (G1–G5), MediaTek Dimensity, and Samsung Exynos.
