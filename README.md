@@ -4,14 +4,14 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0.20-7F52FF.svg?style=flat&logo=kotlin)](https://kotlinlang.org)
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-BOM%202024.09.02-4285F4.svg?style=flat&logo=jetpackcompose)](https://developer.android.com/jetpack/compose)
 [![TensorFlow Lite](https://img.shields.io/badge/TensorFlow%20Lite-2.14.0%20(FP16)-FF6F00.svg?style=flat&logo=tensorflow)](https://www.tensorflow.org/lite)
-[![Release](https://img.shields.io/badge/Release-v1.0.2%20APK-9945FF.svg?style=flat&logo=github)](https://github.com/Sadik00789/Artflow-Android/releases/latest)
+[![Release](https://img.shields.io/badge/Release-v1.0.3%20APK-9945FF.svg?style=flat&logo=github)](https://github.com/Sadik00789/Artflow-Android/releases/latest)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Inference](https://img.shields.io/badge/Inference-100%25%20On--Device%20Offline-green.svg?style=flat)](#strict-offline--privacy-first)
 [![Hardware Target](https://img.shields.io/badge/Hardware-Universal%20GPU%20%2F%20NPU%20Acceleration-blue.svg?style=flat)](#universal-hardware-acceleration--multi-vendor-support)
 
 **ArtFlow** is a production-grade, 100% offline, on-device neural art studio for Android. It transforms ordinary photos into fine art paintings, anime drawings, and graphic illustrations using hardware-accelerated deep neural networks running directly on the device's GPU—with **zero cloud dependencies, zero telemetry, and zero network calls**.
 
-👉 **[Download the Latest Standalone APK (v1.0.2)](https://github.com/Sadik00789/Artflow-Android/releases/download/v1.0.2/ArtFlow-v1.0.2.apk)**
+👉 **[Download the Latest Standalone APK (v1.0.3)](https://github.com/Sadik00789/Artflow-Android/releases/download/v1.0.3/ArtFlow-v1.0.3.apk)**
 
 ---
 
@@ -35,8 +35,10 @@
 - **Pure 1:1 WYSIWYG Export**: Directly exports the exact on-screen composite preview to `Pictures/ArtFlow` at 100% lossless JPEG quality in $<15\text{ms}$ with full EXIF metadata and zero alteration.
 - **Selfie Segmentation & Subject Protection**: Real-time on-device portrait isolation running with edge-guarded subject preservation and tailored aesthetic color grading.
 - **Universal Multi-Vendor Hardware Acceleration (`DeviceHardwareProfile`)**:
+  - **Bypassed TFLite CompatibilityList Whitelist**: Replaced legacy static device whitelisting with direct runtime driver probing, unlocking native GPU execution on chips released after 2023 (MediaTek Dimensity 7300/8300/9300, Snapdragon 8 Gen 3/8 Elite, Tensor G4/G5).
+  - **Eliminated Deprecated NNAPI Software Trap**: Bypasses the single-threaded CPU software emulation trap, falling straight into tuned 4-thread SIMD XNNPACK CPU execution if GPU drivers are unavailable.
   - **Qualcomm Snapdragon (8 Elite, 8 Gen 1–3, 7/6 series)**: Native OpenCL FP16 with persistent Adreno disk shader binary caching (`codeCacheDir`), eliminating driver lockups and recompilation latency.
-  - **Google Pixel Tensor Processors (G1–G5 / Pixel 6–9 Pro Fold)**: Native OpenCL acceleration enabled via `<uses-native-library>` manifest linker permissions and disk shader binary serialization (`clGetProgramInfo`), with automatic fallback to OpenGL ES 3.1 Compute, Android NNAPI (EdgeTPU), and multi-threaded CPU.
+  - **Google Pixel Tensor Processors (G1–G5 / Pixel 6–9 Pro Fold)**: Native OpenCL acceleration enabled via `<uses-native-library>` manifest linker permissions and disk shader binary serialization (`clGetProgramInfo`), with automatic fallback to OpenGL ES 3.1 Compute and multi-threaded CPU.
   - **MediaTek Dimensity & Helio (Dimensity 700–9400)**: Resilient OpenCL FP16 with ARM Mali / Immortalis disk shader caching and OpenGL compute fallback.
   - **Samsung Exynos (ARM Mali & AMD RDNA Xclipse 530/920/940)**: Multi-backend resilience across mobile GPU architectures with disk shader caching.
   - **Universal CPU Fallback (Unisoc & Generic)**: Dynamically tuned XNNPACK multi-threading sized to performance cores (4 threads for tri-cluster architectures), keeping UI threads fluid.
@@ -56,14 +58,13 @@ flowchart TD
     subgraph HardwareStage ["2. Adaptive Hardware Orchestration (DeviceHardwareProfile)"]
         B --> C["ModelLruCache: 2-Slot GPU LRU"]
         C --> D{"Vendor / Hardware Detection"}
-        D -->|"Qualcomm / MediaTek / Google Tensor / Exynos"| E["Tier 1: OpenCL FP16 + Disk Shader Cache"]
-        D -->|"Restricted Drivers"| F["Tier 2: OpenGL ES 3.1 Compute Shaders"]
-        D -->|"Hardware NPU / EdgeTPU"| G["Tier 3: Android NNAPI Acceleration"]
-        D -->|"CPU Fallback"| H["Tier 4: Tuned 4-Thread XNNPACK"]
+        D -->|"Qualcomm / MediaTek / Google Tensor / Exynos"| E["Tier 1: Direct OpenCL FP16 Probe + Disk Shader Cache"]
+        D -->|"Restricted Drivers / Fallback"| F["Tier 2: OpenGL ES 3.1 Compute Shaders"]
+        D -->|"Direct CPU Fallback (Bypassing NNAPI Trap)"| H["Tier 3: Tuned Multi-Thread SIMD XNNPACK"]
     end
 
     subgraph StudioEngine ["3. Zero-Allocation Studio Engine"]
-        E & F & G & H --> I["StyleTransferEngine: Static 1024x1024 Tensor Canvas"]
+        E & F & H --> I["StyleTransferEngine: Static 1024x1024 Tensor Canvas"]
         B --> J["PortraitSegmenter: MediaPipe Selfie Segmenter (CPU Thread)"]
         J --> K["MaskProcessor: 2D Spatial Bicubic Rescale"]
         I --> L["StylePostProcessor: Tailored Aesthetic Color Grading"]
@@ -247,6 +248,12 @@ python3 tools/verify_tflite.py
 ---
 
 ## Release Changelog
+
+### v1.0.3 — Modern GPU Acceleration & Dimensity Support
+- **Bypassed TFLite CompatibilityList**: Replaced legacy 2023 static JSON device whitelist with active runtime GPU driver probing. MediaTek Dimensity 7000/8000/9000 (Mali-G615/G715/G720), Snapdragon 8 Gen 3/Elite (Adreno 750/830), and Tensor G4/G5 now utilize full Tier 1 OpenCL acceleration.
+- **Eliminated NNAPI Fallback Trap**: Removed deprecated NNAPI routing that silently fell back to single-threaded CPU reference emulation (dropping render times from 40s to ~1.2s on modern chips).
+- **Direct XNNPACK Fallback**: Systems without compatible GPU drivers fall straight into multi-threaded SIMD XNNPACK CPU execution.
+- **Zero Allocations & Authentic Colors**: Retained full 1024px tensor canvas, pinned memory buffers, and clean neural palettes.
 
 ### v1.0.2 — Authentic Neural Palettes & Tailored Graphic Grading
 - **Natural Neural Balance**: Restored authentic pre-trained color balance for Fine Art and Anime models, eliminating global RGB offsets to preserve natural skin tones, facial contours, and clean neutral whites.
